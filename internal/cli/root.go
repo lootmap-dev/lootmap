@@ -49,6 +49,8 @@ func NewRootCmd(o Options) *cobra.Command {
 	root.AddCommand(newExplainCmd(o))
 	root.AddCommand(newFixCmd(o))
 	root.AddCommand(newUndoCmd(o))
+	root.AddCommand(newCheckPackagesCmd(o))
+	root.AddCommand(newUpdateDBCmd(o))
 	return root
 }
 

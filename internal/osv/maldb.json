@@ -1,0 +1,26 @@
+{
+  "version": "2026-10-30",
+  "advisories": [
+    {
+      "id": "MAL-2025-4912",
+      "ecosystem": "npm",
+      "name": "@ctrl/tinycolor",
+      "versions": ["4.1.1", "4.1.2"],
+      "summary": "Shai-Hulud worm payload that harvests ~/.aws, ~/.npmrc, GitHub and SSH keys"
+    },
+    {
+      "id": "MAL-2026-1104",
+      "ecosystem": "npm",
+      "name": "event-stream-malicious-test",
+      "versions": ["3.3.6"],
+      "summary": "Known malicious npm package version used for infostealer verification"
+    },
+    {
+      "id": "MAL-2026-2209",
+      "ecosystem": "npm",
+      "name": "lottie-player-mal",
+      "versions": ["2.0.5", "2.0.6"],
+      "summary": "Supply-chain compromise injecting credential exfiltration script"
+    }
+  ]
+}

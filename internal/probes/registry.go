@@ -169,12 +169,14 @@ func AIProbes() []Probe {
 	}
 }
 
-// RemainingProbes returns the Phase 4 probes (dotenv, containers, iac).
+// RemainingProbes returns the Phase 4 and Phase 7 probes (dotenv, containers,
+// iac, packages).
 func RemainingProbes() []Probe {
 	return []Probe{
 		DotenvProbe{},
 		ContainersProbe{},
 		IaCProbe{},
+		PackagesProbe{},
 	}
 }
 
