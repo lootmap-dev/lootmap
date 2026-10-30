@@ -10,8 +10,10 @@ Usage:
 Available Commands:
   doctor      Show the environment and which probes would run
   explain     Explain a finding and how to remediate or rotate it
+  fix         Preview, back up, and apply safe remediations
   help        Help about any command
   scan        Scan this computer for exposed credentials and build a loot map
+  undo        Restore files from the most recent or specified backup snapshot
 
 Flags:
   -h, --help      help for lootmap
