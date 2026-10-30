@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lootmap report</title>
+<style>
+ 
+:root {
+  --paper: #e6eae2;
+  --paper-deep: #dbe1d7;
+  --ink: #17232b;
+  --muted: #56666b;
+  --rule: #c6d0c5;
+  --critical: #d7263d;
+  --high: #c98200;
+  --medium: #5c7c8a;
+  --low: #8a979b;
+  --good: #1d8467;
+  --term: #131c22;
+  --term-fg: #d5dee2;
+  --sans: "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Roboto, Arial, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.55 var(--sans); }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 64px; }
+a { color: inherit; text-underline-offset: 3px; }
+a:hover { color: var(--critical); }
+:focus-visible { outline: 3px solid var(--critical); outline-offset: 2px; }
+code { font-family: var(--mono); font-size: .9em; }
+
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 22px 0; border-bottom: 2px solid var(--ink); }
+.mark { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
+.mark svg { width: 18px; height: 23px; }
+.meta { font: 13px/1.4 var(--mono); color: var(--muted); }
+.meta b { color: var(--good); font-weight: 600; }
+
+.head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 40px; align-items: end; padding: 40px 0 30px; }
+h1 { margin: 0; font-size: clamp(30px, 4.6vw, 50px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 800; text-wrap: balance; max-width: 18ch; }
+.summary { margin: 14px 0 0; color: #2b3a41; font-size: 18px; max-width: 58ch; }
+.score { text-align: right; font-variant-numeric: tabular-nums; }
+.score .n { font-size: 84px; line-height: .9; font-weight: 800; letter-spacing: -0.04em; }
+.score .g { display: block; margin-top: 6px; color: var(--muted); font-size: 15px; }
+.tone-bad .n { color: var(--critical); }
+.tone-warn .n { color: var(--high); }
+.tone-good .n { color: var(--good); }
+.counts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: var(--paper-deep); font-size: 14px; font-weight: 600; }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.sev-critical { background: var(--critical); }
+.sev-high { background: var(--high); }
+.sev-medium { background: var(--medium); }
+.sev-low { background: var(--low); }
+
+h2 { margin: 48px 0 6px; font-size: 26px; letter-spacing: -0.02em; font-weight: 800; }
+.intro { margin: 0 0 18px; color: var(--muted); max-width: 64ch; }
+
+ 
+.map { position: relative; margin: 0; padding: 6px 0 6px 28px; list-style: none; background: var(--paper-deep); border-radius: 14px; }
+.map::before { content: ""; position: absolute; left: 30px; top: 22px; bottom: 22px; border-left: 1.5px dashed #8d9c96; }
+.map li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 18px; align-items: center; padding: 12px 22px 12px 26px; }
+.map li + li { border-top: 1px solid rgba(23, 35, 43, .08); }
+.map li::before { content: ""; position: absolute; left: -3px; top: 50%; width: 9px; height: 9px; margin-top: -5px; border-radius: 50%; background: var(--paper); border: 1.5px solid #8d9c96; }
+.map .path { font: 14px/1.4 var(--mono); overflow-wrap: anywhere; }
+.pins { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.pin { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 999px; background: var(--paper); font-size: 13px; white-space: nowrap; }
+
+ 
+.findings { margin: 0; padding: 0; list-style: none; border-top: 2px solid var(--ink); }
+.finding { display: grid; grid-template-columns: 6px minmax(0, 1fr); gap: 0 18px; padding: 18px 0; border-bottom: 1px solid var(--rule); }
+.stripe { border-radius: 3px; }
+.f-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.f-title { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+.f-short { color: var(--muted); }
+.f-impact { margin: 4px 0 8px; }
+.f-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; font-size: 14px; }
+.f-grid dt { color: var(--muted); }
+.f-grid dd { margin: 0; font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+.f-grid dd.sans { font-family: var(--sans); font-size: 14px; }
+.tag { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 13px; font-weight: 600; font-family: var(--sans); }
+.tag.auto { background: rgba(29, 132, 103, .14); color: #11664f; }
+.tag.manual { background: rgba(215, 38, 61, .1); color: #a3162a; }
+.steps { margin: 8px 0 0; padding-left: 18px; font-size: 14px; color: #2b3a41; }
+.steps li + li { margin-top: 2px; }
+
+.term { margin-top: 10px; background: var(--term); color: var(--term-fg); border-radius: 12px; padding: 18px 20px; font: 14px/1.7 var(--mono); overflow-x: auto; white-space: pre; }
+.term .p { color: #8fd3ff; }
+.term .c { color: #7f8f96; }
+
+.clean { padding: 40px 28px; border-radius: 14px; background: var(--paper-deep); font-size: 18px; }
+footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 14px; }
+
+@media (max-width: 640px) {
+  .wrap { padding: 0 16px 48px; }
+  .head { grid-template-columns: minmax(0, 1fr); }
+  .score { text-align: left; }
+  .map li { grid-template-columns: minmax(0, 1fr); }
+  .pins { justify-content: flex-start; }
+}
+@media print {
+  body { background: #fff; }
+  .map, .clean { background: #f3f5f1; }
+  .term { background: #fff; color: var(--ink); border: 1px solid var(--rule); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <span class="mark"><svg viewBox="0 0 22 28" aria-hidden="true"><path d="M11 27C11 27 1.5 16.6 1.5 10.5a9.5 9.5 0 0 1 19 0C20.5 16.6 11 27 11 27Z" fill="#d7263d"/><circle cx="11" cy="10.5" r="3.6" fill="#e6eae2"/></svg>lootmap</span>
+    <span class="meta">report · linux · lootmap 0.1.0 · network: <b>none</b> · secret values masked</span>
+  </header>
+
+
+  <section class="head">
+    <div>
+      <h1>If malware ran on this computer, it would take 12 things.</h1>
+      <p class="summary">Found in 7 files under your home folder. 9 can be cleaned up automatically with <code>lootmap fix</code>. 6 keys should be revoked and replaced.</p>
+      <div class="counts">
+        <span class="chip"><span class="dot sev-critical"></span>5 critical</span>
+        <span class="chip"><span class="dot sev-high"></span>7 high</span>
+        
+        
+      </div>
+    </div>
+    <div class="score tone-bad" aria-label="Score 22 out of 100, grade F">
+      <span class="n">22</span>
+      <span class="g">out of 100 · grade F</span>
+    </div>
+  </section>
+
+  <h2>Loot map</h2>
+  <p class="intro">Every file that holds something worth stealing, with one pin per finding.</p>
+  <ul class="map">
+  
+    <li>
+      <span class="path">~/.aws/credentials</span>
+      <span class="pins"><span class="pin"><span class="dot sev-critical"></span>AWS account</span></span>
+    </li>
+  
+    <li>
+      <span class="path">~/.claude/projects/acme-web/9f2c1e.jsonl</span>
+      <span class="pins"><span class="pin"><span class="dot sev-critical"></span>Database</span><span class="pin"><span class="dot sev-critical"></span>Stripe</span><span class="pin"><span class="dot sev-high"></span>Slack</span></span>
+    </li>
+  
+    <li>
+      <span class="path">~/.codex/sessions/2026-10-28.jsonl</span>
+      <span class="pins"><span class="pin"><span class="dot sev-high"></span>Anthropic</span><span class="pin"><span class="dot sev-high"></span>OpenAI</span></span>
+    </li>
+  
+    <li>
+      <span class="path">~/.gitconfig</span>
+      <span class="pins"><span class="pin"><span class="dot sev-critical"></span>Git</span></span>
+    </li>
+  
+    <li>
+      <span class="path">~/.ssh/config</span>
+      <span class="pins"><span class="pin"><span class="dot sev-high"></span>SSH config</span></span>
+    </li>
+  
+    <li>
+      <span class="path">~/.ssh/id_ed25519</span>
+      <span class="pins"><span class="pin"><span class="dot sev-high"></span>Private key</span><span class="pin"><span class="dot sev-high"></span>SSH</span><span class="pin"><span class="dot sev-high"></span>SSH</span></span>
+    </li>
+  
+    <li>
+      <span class="path">~/.zsh_history</span>
+      <span class="pins"><span class="pin"><span class="dot sev-critical"></span>GitHub</span></span>
+    </li>
+  
+  </ul>
+
+  <h2>Findings</h2>
+  <p class="intro">Most severe first. Previews show only the first and last characters of each key.</p>
+  <ol class="findings">
+  
+    <li class="finding" id="L-ff9fccef">
+      <span class="stripe sev-critical" aria-hidden="true"></span>
+      <div>
+        <div class="f-top"><span class="f-title">AWS account</span><span class="f-short">long-lived access key · no expiry</span></div>
+        <p class="f-impact">Long-lived access to your AWS account</p>
+        <dl class="f-grid">
+          <dt>Severity</dt><dd class="sans">critical</dd>
+          <dt>Preview</dt><dd>AKIA••••••QAZI</dd>
+          <dt>Found in</dt><dd>~/.aws/credentials:2</dd>
+          <dt>Next step</dt><dd class="sans"><span class="tag manual">Revoke or change it yourself</span> · <a href="https://console.aws.amazon.com/iam/home#/security_credentials" rel="noreferrer noopener">revoke page</a></dd>
+        </dl>
+        <ol class="steps"><li>Deactivate and delete the IAM access key in the AWS IAM console.</li><li>Migrate local CLI usage to &#39;aws configure sso&#39; (short-lived SSO credentials).</li></ol>
+      </div>
+    </li>
+  
+    <li class="finding" id="L-d3b9d50d">
+      <span class="stripe sev-critical" aria-hidden="true"></span>
+      <div>
+        <div class="f-top"><span class="f-title">Database</span><span class="f-short">connection URI · with password</span></div>
+        <p class="f-impact">Direct read/write access to a database with embedded credentials</p>
+        <dl class="f-grid">
+          <dt>Severity</dt><dd class="sans">critical</dd>
+          <dt>Preview</dt><dd>postgres••••••5432</dd>
+          <dt>Found in</dt><dd>~/.claude/projects/acme-web/9f2c1e.jsonl:2</dd>
+          <dt>Next step</dt><dd class="sans"><span class="tag auto">Cleaned by lootmap fix</span></dd>
+        </dl>
+        <ol class="steps"><li>Rotate the database user password on the database server.</li><li>Avoid keeping production connection strings in local .env files.</li></ol>
+      </div>
+    </li>
+  
+    <li class="finding" id="L-ec7623da">
+      <span class="stripe sev-critical" aria-hidden="true"></span>
+      <div>
+        <div class="f-top"><span class="f-title">Git</span><span class="f-short">credential.helper = store</span></div>
+        <p class="f-impact">Git credentials are stored in plaintext on disk</p>
+        <dl class="f-grid">
+          <dt>Severity</dt><dd class="sans">critical</dd>
+          <dt>Preview</dt><dd>helper = store</dd>
+          <dt>Found in</dt><dd>~/.gitconfig:4</dd>
+          <dt>Next step</dt><dd class="sans"><span class="tag auto">Cleaned by lootmap fix</span></dd>
+        </dl>
+        <ol class="steps"><li>Run &#39;lootmap fix&#39; to switch credential.helper to osxkeychain / libsecret / manager.</li></ol>
+      </div>
+    </li>
+  
+    <li class="finding" id="L-0d5f2773">
+      <span class="stripe sev-critical" aria-hidden="true"></span>
+      <div>
+        <div class="f-top"><span class="f-title">GitHub</span><span class="f-short">classic PAT · repo write</span></div>
+        <p class="f-impact">Write access to your GitHub repositories and packages</p>
+        <dl class="f-grid">
+          <dt>Severity</dt><dd class="sans">critical</dd>
+          <dt>Preview</dt><dd>ghp_••••••7c3b</dd>
+          <dt>Found in</dt><dd>~/.zsh_history:2</dd>
+          <dt>Next step</dt><dd class="sans"><span class="tag auto">lootmap fix removes this copy</span> · the key was exposed, so also <a href="https://github.com/settings/tokens" rel="noreferrer noopener">revoke it</a></dd>
+        </dl>
+        <ol class="steps"><li>Open https://github.com/settings/tokens and revoke the exposed classic Personal Access Token.</li><li>Create a fine-grained token limited to the needed repositories and permissions.</li><li>Run &#39;lootmap fix&#39; to switch git credential.helper to the OS keychain and redact AI transcripts.</li></ol>
+      </div>
+    </li>
+  
+    <li class="finding" id="L-797c962d">
+      <span class="stripe sev-critical" aria-hidden="true"></span>
+      <div>
+        <div class="f-top"><span class="f-title">Stripe</span><span class="f-short">live secret key · full billing</span></div>
+        <p class="f-impact">Full live access to your Stripe payments and customer data</p>
+        <dl class="f-grid">
+          <dt>Severity</dt><dd class="sans">critical</dd>
+          <dt>Preview</dt><dd>sk_live_••••••sFRq</dd>
+          <dt>Found in</dt><dd>~/.claude/projects/acme-web/9f2c1e.jsonl:2</dd>
+          <dt>Next step</dt><dd class="sans"><span class="tag auto">lootmap fix removes this copy</span> · the key was exposed, so also <a href="https://dashboard.stripe.com/apikeys" rel="noreferrer noopener">revoke it</a></dd>
+        </dl>
+        <ol class="steps"><li>Roll the live secret key immediately at https://dashboard.stripe.com/apikeys.</li><li>Use restricted keys and test keys (sk_test_) on developer laptops.</li></ol>
+      </div>
+    </li>
+  
+    <li class="finding" id="L-a803a468">
+      <span class="stripe sev-high" aria-hidden="true"></span>
+      <div>
+        <div class="f-top"><span class="f-title">Anthropic</span><span class="f-short">API key</span></div>
+        <p class="f-impact">Spend your Anthropic API quota</p>
+        <dl class="f-grid">
+          <dt>Severity</dt><dd class="sans">high</dd>
+          <dt>Preview</dt><dd>sk-ant-••••••DZuE</dd>
+          <dt>Found in</dt><dd>~/.codex/sessions/2026-10-28.jsonl:2</dd>
+          <dt>Next step</dt><dd class="sans"><span class="tag auto">lootmap fix removes this copy</span> · the key was exposed, so also <a href="https://console.anthropic.com/settings/keys" rel="noreferrer noopener">revoke it</a></dd>
+        </dl>
+        <ol class="steps"><li>Revoke the key at https://console.anthropic.com/settings/keys.</li><li>Move shell RC exports into a password manager or keychain reference.</li></ol>
+      </div>
+    </li>
+  
+    <li class="finding" id="L-b0bd9456">
+      <span class="stripe sev-high" aria-hidden="true"></span>
+      <div>
+        <div class="f-top"><span class="f-title">OpenAI</span><span class="f-short">API key</span></div>
+        <p class="f-impact">Spend your OpenAI API quota and read stored files/assistants</p>
+        <dl class="f-grid">
+          <dt>Severity</dt><dd class="sans">high</dd>
+          <dt>Preview</dt><dd>sk-pro••••••N89a</dd>
+          <dt>Found in</dt><dd>~/.codex/sessions/2026-10-28.jsonl:1</dd>
+          <dt>Next step</dt><dd class="sans"><span class="tag auto">lootmap fix removes this copy</span> · the key was exposed, so also <a href="https://platform.openai.com/api-keys" rel="noreferrer noopener">revoke it</a></dd>
+        </dl>
+        <ol class="steps"><li>Revoke the API key at https://platform.openai.com/api-keys.</li><li>Run &#39;lootmap fix&#39; to redact AI transcripts and shell history.</li></ol>
+      </div>
+    </li>
+  
+    <li class="finding" id="L-dbf5611f">
+      <span class="stripe sev-high" aria-hidden="true"></span>
+      <div>
+        <div class="f-top"><span class="f-title">Private key</span><span class="f-short">PEM/OpenSSH private key</span></div>
+        <p class="f-impact">Authenticate as you to SSH servers or sign artifacts</p>
+        <dl class="f-grid">
+          <dt>Severity</dt><dd class="sans">high</dd>
+          <dt>Preview</dt><dd>-----BEGIN ••••••----</dd>
+          <dt>Found in</dt><dd>~/.ssh/id_ed25519:1</dd>
+          <dt>Next step</dt><dd class="sans"><span class="tag manual">Revoke or change it yourself</span></dd>
+        </dl>
+        <ol class="steps"><li>If this is a service account JSON key, delete it in IAM and use workload identity.</li><li>If this is an SSH key, add a passphrase with &#39;ssh-keygen -p -f ~/.ssh/&lt;key&gt;&#39;.</li></ol>
+      </div>
+    </li>
+  
+    <li class="finding" id="L-bd733d1a">
+      <span class="stripe sev-high" aria-hidden="true"></span>
+      <div>
+        <div class="f-top"><span class="f-title">Slack</span><span class="f-short">workspace token</span></div>
+        <p class="f-impact">Read and post messages in your Slack workspace</p>
+        <dl class="f-grid">
+          <dt>Severity</dt><dd class="sans">high</dd>
+          <dt>Preview</dt><dd>xoxb-••••••UYPV</dd>
+          <dt>Found in</dt><dd>~/.claude/projects/acme-web/9f2c1e.jsonl:2</dd>
+          <dt>Next step</dt><dd class="sans"><span class="tag auto">lootmap fix removes this copy</span> · the key was exposed, so also <a href="https://api.slack.com/apps" rel="noreferrer noopener">revoke it</a></dd>
+        </dl>
+        <ol class="steps"><li>Regenerate or revoke the Slack token in https://api.slack.com/apps.</li></ol>
+      </div>
+    </li>
+  
+    <li class="finding" id="L-b2d35169">
+      <span class="stripe sev-high" aria-hidden="true"></span>
+      <div>
+        <div class="f-top"><span class="f-title">SSH config</span><span class="f-short">ForwardAgent yes</span></div>
+        <p class="f-impact">SSH agent forwarding exposes local keys to compromised remote hosts</p>
+        <dl class="f-grid">
+          <dt>Severity</dt><dd class="sans">high</dd>
+          <dt>Preview</dt><dd>ForwardAgent yes</dd>
+          <dt>Found in</dt><dd>~/.ssh/config:2</dd>
+          <dt>Next step</dt><dd class="sans"><span class="tag auto">Cleaned by lootmap fix</span></dd>
+        </dl>
+        <ol class="steps"><li>Run &#39;lootmap fix&#39; to set ForwardAgent no in ~/.ssh/config.</li></ol>
+      </div>
+    </li>
+  
+    <li class="finding" id="L-40349170">
+      <span class="stripe sev-high" aria-hidden="true"></span>
+      <div>
+        <div class="f-top"><span class="f-title">SSH</span><span class="f-short">key readable by other users</span></div>
+        <p class="f-impact">SSH private key has overly permissive file mode</p>
+        <dl class="f-grid">
+          <dt>Severity</dt><dd class="sans">high</dd>
+          <dt>Preview</dt><dd>readable by group/other</dd>
+          <dt>Found in</dt><dd>~/.ssh/id_ed25519:1</dd>
+          <dt>Next step</dt><dd class="sans"><span class="tag auto">Cleaned by lootmap fix</span></dd>
+        </dl>
+        <ol class="steps"><li>Run &#39;lootmap fix&#39; to set the key to owner-only (chmod 600).</li></ol>
+      </div>
+    </li>
+  
+    <li class="finding" id="L-7c156490">
+      <span class="stripe sev-high" aria-hidden="true"></span>
+      <div>
+        <div class="f-top"><span class="f-title">SSH</span><span class="f-short">passphraseless key</span></div>
+        <p class="f-impact">Passphraseless SSH private key can be used immediately if stolen</p>
+        <dl class="f-grid">
+          <dt>Severity</dt><dd class="sans">high</dd>
+          <dt>Preview</dt><dd>id_ed25519 (no passphrase)</dd>
+          <dt>Found in</dt><dd>~/.ssh/id_ed25519:1</dd>
+          <dt>Next step</dt><dd class="sans"><span class="tag manual">Revoke or change it yourself</span></dd>
+        </dl>
+        <ol class="steps"><li>Add a passphrase in place: ssh-keygen -p -f ~/.ssh/id_ed25519</li></ol>
+      </div>
+    </li>
+  
+  </ol>
+
+  <h2>What to do now</h2>
+  <p class="intro">Fixes are previewed first, every changed file is backed up, and <code>lootmap undo</code> puts it all back.</p>
+  <div class="term"><span class="p">~ ❯</span> lootmap fix --dry-run      <span class="c"># see exactly what would change</span>
+<span class="p">~ ❯</span> lootmap fix --yes          <span class="c"># apply it</span>
+<span class="p">~ ❯</span> lootmap explain --rotate   <span class="c"># revoke pages for every exposed key</span>
+<span class="p">~ ❯</span> lootmap scan --format html --output lootmap-report.html   <span class="c"># check again</span></div>
+
+
+  <footer>Generated offline by lootmap 0.1.0. This page loads nothing from the internet and contains masked previews only, so it is safe to share with your security team.</footer>
+</div>
+</body>
+</html>

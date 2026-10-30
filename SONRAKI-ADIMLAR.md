@@ -147,3 +147,24 @@ git push origin v0.1.0
 Ardından:
 1. `https://github.com/lootmap-dev/lootmap/actions` sayfasında **`release`** iş akışının tamamlanmasını izle.
 2. `https://github.com/lootmap-dev/lootmap/releases` sayfasında imzalı `v0.1.0` sürümünün yayınlandığını gör!
+
+
+---
+
+## Bölüm 4: Tanıtım sitesini yayınlama (GitHub Pages)
+
+Projenin tanıtım sitesi `docs/index.html` dosyasında hazır. Kod GitHub'a yüklendikten sonra:
+
+1. GitHub'da `lootmap-dev/lootmap` deposunu açın, **Settings** sekmesine girin.
+2. Sol menüden **Pages** seçin.
+3. **Build and deployment** altında **Source: Deploy from a branch** seçin.
+4. **Branch** olarak `main` (veya `master`) ve klasör olarak `/docs` seçip **Save** deyin.
+5. Birkaç dakika sonra site `https://lootmap-dev.github.io/lootmap/` adresinde yayında olur.
+
+README'deki "project site" bağlantısı bu adrese gider.
+
+## Bölüm 5: Yayından önce mutlaka yapılacaklar
+
+- `internal/osv/db.go` içindeki imza anahtarı RFC 8032 standardının herkese açık test anahtarıdır. `update-db` bu yüzden kapalı. Kendi Ed25519 anahtar çiftinizi üretip açık anahtarı buraya koyun, özel anahtarı asla repoya koymayın.
+- `internal/osv/maldb.json` içindeki kötü amaçlı paket listesi örnek amaçlıdır. Gerçek OSV `MAL-` kayıtlarıyla değiştirin.
+- `# UNVERIFIED` işaretli yolları gerçek kurulumlarda kontrol edin (Bölüm 2).

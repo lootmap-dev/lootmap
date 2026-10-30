@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lootmap</title>
+<meta name="description" content="lootmap shows what an infostealer would take from your laptop, from ~/.aws to your AI agent's chat logs, and locks down what it safely can.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a surveyor's sheet. The terminal and a live map of ~ sit side by side;
+   pins drop on the map as the scan names files, and turn into cleared marks after fix. */
+:root {
+  --paper: #e6eae2;
+  --paper-deep: #dbe1d7;
+  --ink: #17232b;
+  --muted: #56666b;
+  --contour: #c6d0c5;
+  --loot: #d7263d;
+  --warn: #c98200;
+  --safe: #1d8467;
+  --term: #131c22;
+  --term-fg: #d5dee2;
+  --term-dim: #7f8f96;
+  --font-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 17px/1.6 var(--font-body);
+}
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--loot); }
+:focus-visible { outline: 3px solid var(--loot); outline-offset: 3px; border-radius: 4px; }
+code, kbd { font-family: var(--font-mono); font-size: 0.88em; }
+
+#contours { position: absolute; inset: 0 0 auto 0; height: 980px; width: 100%; z-index: 0; pointer-events: none; }
+.wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+
+/* Header */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 26px 0 0; }
+.mark { display: flex; align-items: center; gap: 10px; font: 800 22px/1 var(--font-display); letter-spacing: -0.02em; text-decoration: none; }
+.mark svg { width: 22px; height: 28px; }
+.top nav { display: flex; gap: 22px; font-size: 15px; }
+.top nav a { text-decoration: none; color: var(--muted); }
+.top nav a:hover { color: var(--ink); }
+
+/* Hero */
+.hero { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; padding: 64px 0 36px; max-width: 900px; }
+h1 {
+  margin: 0;
+  font: 800 clamp(44px, 7.2vw, 92px)/0.94 var(--font-display);
+  letter-spacing: -0.035em;
+  font-variation-settings: "opsz" 96;
+  text-wrap: balance;
+}
+.lede { margin: 0; max-width: 60ch; font-size: 19px; color: #2b3a41; }
+.lede code { background: var(--paper-deep); padding: 1px 6px; border-radius: 4px; }
+.cta { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 8px; }
+.install {
+  display: flex; align-items: center; gap: 0; max-width: 100%;
+  background: var(--ink); color: #eef3f1; border-radius: 10px; overflow: hidden;
+  font: 400 14px/1 var(--font-mono);
+}
+.install span { padding: 14px 16px; white-space: nowrap; overflow-x: auto; }
+.install span b { color: #8fa2a8; font-weight: 400; }
+.install button {
+  align-self: stretch; border: 0; padding: 0 16px; cursor: pointer;
+  background: #263640; color: #eef3f1; font: 600 13px/1 var(--font-body);
+}
+.install button:hover { background: #31444f; }
+.ghost { font-weight: 600; font-size: 15px; }
+
+/* Stage: terminal + map */
+.stage {
+  display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  border-radius: 16px; overflow: hidden;
+  box-shadow: 0 30px 60px -30px rgba(23, 35, 43, 0.55), 0 0 0 1px rgba(23, 35, 43, 0.12);
+}
+.term { background: var(--term); color: var(--term-fg); display: flex; flex-direction: column; min-height: 600px; }
+.term-bar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #22303a; }
+.dot { width: 11px; height: 11px; border-radius: 50%; background: #3a4a54; }
+.term-title { margin-left: 8px; font: 400 13px/1 var(--font-mono); color: var(--term-dim); }
+.term-bar .replay {
+  margin-left: auto; border: 1px solid #33444f; background: transparent; color: var(--term-fg);
+  font: 500 13px/1 var(--font-body); padding: 7px 12px; border-radius: 6px; cursor: pointer;
+}
+.term-bar .replay:hover { border-color: var(--term-fg); }
+.screen {
+  flex: 1; overflow: auto; padding: 16px 18px 6px;
+  font: 400 13px/1.55 var(--font-mono); white-space: pre; tab-size: 4;
+  scrollbar-color: #33444f transparent;
+}
+.screen .b { font-weight: 700; color: #f2f6f7; }
+.screen .r { color: #ff6b6b; }
+.screen .y { color: #ffc857; }
+.screen .g { color: #5fd3a3; }
+.screen .p { color: #8fd3ff; }
+.screen .dim { color: var(--term-dim); }
+.prompt-line { display: flex; align-items: center; gap: 10px; padding: 8px 18px 14px; font: 400 13px/1.55 var(--font-mono); }
+.prompt-line label { color: #8fd3ff; white-space: nowrap; }
+.prompt-line input {
+  flex: 1; min-width: 0; background: transparent; border: 0; color: var(--term-fg);
+  font: inherit; caret-color: #8fd3ff; padding: 4px 0;
+}
+.prompt-line input:focus { outline: none; }
+.prompt-line:focus-within { box-shadow: inset 0 1px 0 #22303a; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 18px 16px; }
+.chips button {
+  border: 1px solid #2c3b45; background: #19252d; color: var(--term-fg); cursor: pointer;
+  font: 400 12px/1 var(--font-mono); padding: 8px 10px; border-radius: 6px;
+}
+.chips button:hover { border-color: #8fd3ff; color: #fff; }
+
+.map { background: var(--paper-deep); position: relative; display: flex; flex-direction: column; border-left: 1px solid rgba(23,35,43,.12); }
+.map-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 18px 22px 0; }
+.map-head h2 { margin: 0; font: 700 21px/1.1 var(--font-display); letter-spacing: -0.015em; }
+.score { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+.score strong { font: 800 34px/1 var(--font-display); letter-spacing: -0.02em; transition: color .4s; }
+.score span { color: var(--muted); font-size: 14px; }
+.map-sub { margin: 4px 22px 0; color: var(--muted); font-size: 14px; }
+#mapsvg { width: 100%; height: auto; display: block; margin: 8px 0 auto; }
+#mapsvg .trail { fill: none; stroke: #8d9c96; stroke-width: 1.3; stroke-dasharray: 3 4; }
+#mapsvg .place { font: 400 12.5px var(--font-mono); fill: var(--ink); }
+#mapsvg .place.dir { fill: var(--muted); }
+#mapsvg .root { font: 800 22px var(--font-display); fill: var(--ink); }
+#mapsvg .node { fill: var(--paper); stroke: #8d9c96; stroke-width: 1.3; }
+.pin { cursor: pointer; transform-box: fill-box; transform-origin: 50% 100%; }
+.pin .head { stroke: var(--paper-deep); stroke-width: 2; }
+.pin text { font: 700 11px var(--font-body); fill: #fff; text-anchor: middle; pointer-events: none; }
+.pin.drop { animation: drop .45s cubic-bezier(.2,.9,.3,1.3) both; }
+@keyframes drop { from { transform: translateY(-18px) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+.cleared circle { fill: none; stroke: var(--safe); stroke-width: 2; }
+.cleared path { fill: none; stroke: var(--safe); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 0 22px 18px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.tip {
+  position: absolute; pointer-events: none; z-index: 5; max-width: 260px;
+  background: var(--ink); color: #eef3f1; border-radius: 8px; padding: 10px 12px;
+  font-size: 13px; line-height: 1.45; box-shadow: 0 10px 24px -10px rgba(0,0,0,.5);
+  opacity: 0; transform: translateY(4px); transition: opacity .15s, transform .15s;
+}
+.tip.on { opacity: 1; transform: none; }
+.tip code { display: block; color: #9fb2b8; margin-bottom: 4px; font-size: 12px; }
+.fine { margin: 14px 0 0; font-size: 14px; color: var(--muted); }
+
+/* Sections */
+section.block { padding: 88px 0 0; }
+.block h2 { margin: 0 0 10px; font: 800 clamp(30px, 4vw, 46px)/1.02 var(--font-display); letter-spacing: -0.03em; text-wrap: balance; max-width: 20ch; }
+.block > p.intro { margin: 0 0 30px; max-width: 62ch; color: #2b3a41; }
+
+.legend-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.legend-table th { text-align: left; font: 600 13px/1.2 var(--font-body); color: var(--muted); padding: 0 16px 10px 0; border-bottom: 2px solid var(--ink); }
+.legend-table td { padding: 13px 16px 13px 0; border-bottom: 1px solid var(--contour); vertical-align: top; }
+.legend-table td:first-child { white-space: nowrap; font-family: var(--font-mono); font-size: 14px; font-weight: 700; }
+.legend-table td:first-child i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 9px; vertical-align: 1px; }
+.legend-table td:nth-child(2) { color: var(--muted); font-family: var(--font-mono); font-size: 13px; }
+.legend-table td.fixcell { white-space: nowrap; }
+.tag { display: inline-block; font-size: 13px; font-weight: 600; padding: 2px 9px; border-radius: 999px; }
+.tag.auto { background: rgba(29,132,103,.14); color: #11664f; }
+.tag.manual { background: rgba(23,35,43,.07); color: var(--muted); }
+.table-scroll { overflow-x: auto; }
+
+.promises { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 48px; margin: 0; padding: 0; list-style: none; }
+.promises li { padding: 20px 0; border-top: 1px solid var(--contour); }
+.promises b { display: block; font: 700 19px/1.25 var(--font-display); letter-spacing: -0.01em; margin-bottom: 4px; }
+.promises span { color: #34454c; font-size: 16px; }
+
+.steps { display: grid; gap: 14px; max-width: 760px; margin: 0; padding: 0; list-style: none; counter-reset: s; }
+.steps li { display: grid; grid-template-columns: 36px minmax(0,1fr); gap: 14px; align-items: start; counter-increment: s; }
+.steps li::before { content: counter(s); font: 800 22px/1.3 var(--font-display); color: var(--loot); }
+.steps pre { margin: 6px 0 0; background: var(--ink); color: #e7eeec; padding: 12px 14px; border-radius: 8px; overflow-x: auto; font: 400 13.5px/1.5 var(--font-mono); }
+.steps pre .c { color: #8fa2a8; }
+.steps p { margin: 0; }
+
+footer { margin-top: 110px; padding: 26px 0 40px; border-top: 2px solid var(--ink); display: flex; flex-wrap: wrap; gap: 10px 28px; justify-content: space-between; font-size: 14px; color: var(--muted); }
+
+@media (max-width: 960px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .map { border-left: 0; border-top: 1px solid rgba(23,35,43,.12); }
+  .term { min-height: 480px; }
+}
+@media (max-width: 560px) {
+  .wrap { padding: 0 16px; }
+  .top nav a:not(:last-child) { display: none; }
+  .term-title { display: none; }
+  .hero { padding-top: 40px; }
+  .lede { font-size: 17px; }
+  .screen { font-size: 11.5px; }
+  .legend-table td:nth-child(2) { display: none; }
+  .legend-table th:nth-child(2) { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pin.drop { animation: none; }
+  .score strong { transition: none; }
+}
+</style>
+</head>
+<body>
+<canvas id="contours" aria-hidden="true"></canvas>
+<div class="wrap">
+  <header class="top">
+    <a class="mark" href="#" aria-label="lootmap home">
+      <svg viewBox="0 0 22 28" aria-hidden="true"><path d="M11 27C11 27 1.5 16.6 1.5 10.5a9.5 9.5 0 0 1 19 0C20.5 16.6 11 27 11 27Z" fill="#d7263d"/><circle cx="11" cy="10.5" r="3.6" fill="#e6eae2"/></svg>
+      lootmap
+    </a>
+    <nav aria-label="Main">
+      <a href="#looks">What it checks</a>
+      <a href="#promises">Safety</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/lootmap-dev/lootmap">GitHub</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>What would malware take from your laptop?</h1>
+    <p class="lede">lootmap maps every key an infostealer would grab, from <code>~/.aws</code> to the chat logs your AI coding agent saves to disk. Then it locks down what it safely can. One binary, no network, nothing leaves your machine.</p>
+    <div class="cta">
+      <div class="install">
+        <span id="installcmd"><b>$</b> go install github.com/lootmap-dev/lootmap/cmd/lootmap@latest</span>
+        <button type="button" id="copybtn">Copy</button>
+      </div>
+      <a class="ghost" href="https://github.com/lootmap-dev/lootmap">Read the source on GitHub</a>
+    </div>
+  </section>
+
+  <div class="stage" id="demo">
+    <div class="term">
+      <div class="term-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="term-title">~ · demo home with fake keys</span>
+        <button class="replay" type="button" id="replay">Replay demo</button>
+      </div>
+      <div class="screen" id="screen" role="log" aria-live="polite" aria-label="lootmap terminal output" tabindex="0"></div>
+      <form class="prompt-line" id="promptform" autocomplete="off">
+        <label for="cmd">~ ❯</label>
+        <input id="cmd" name="cmd" type="text" spellcheck="false" placeholder="type a command, or try one below" aria-label="Command">
+      </form>
+      <div class="chips" aria-label="Example commands">
+        <button type="button" data-cmd="lootmap scan">lootmap scan</button>
+        <button type="button" data-cmd="lootmap fix --dry-run">lootmap fix --dry-run</button>
+        <button type="button" data-cmd="lootmap fix --yes">lootmap fix --yes</button>
+        <button type="button" data-cmd="lootmap explain --rotate">lootmap explain --rotate</button>
+        <button type="button" data-cmd="lootmap undo">lootmap undo</button>
+        <button type="button" data-cmd="lootmap doctor">lootmap doctor</button>
+      </div>
+    </div>
+    <div class="map">
+      <div class="map-head">
+        <h2>Loot map of ~</h2>
+        <div class="score" aria-live="polite"><strong id="scoreval">22</strong><span id="scoregrade">/100 · F</span></div>
+      </div>
+      <p class="map-sub" id="mapsub">12 findings in 7 files</p>
+      <svg id="mapsvg" viewBox="0 0 440 470" role="img" aria-label="Map of the demo home directory with a pin on every file that holds something worth stealing"></svg>
+      <div class="legend"><span><i style="background:var(--loot)"></i>critical</span><span><i style="background:var(--warn)"></i>high</span><span><i style="border:2px solid var(--safe)"></i>cleaned by fix</span></div>
+      <div class="tip" id="tip" role="tooltip"></div>
+    </div>
+  </div>
+  <p class="fine">Every line above is real lootmap output, recorded against a home directory full of fake keys. Try the commands; nothing runs on your computer.</p>
+
+  <section class="block" id="looks">
+    <h2>Twelve places stealers look first</h2>
+    <p class="intro">The probe list follows what Shai-Hulud and the hijacked Bitwarden CLI actually read on victims' machines, plus the transcripts AI coding agents keep on disk.</p>
+    <div class="table-scroll">
+      <table class="legend-table">
+        <thead><tr><th scope="col">Probe</th><th scope="col">Where it looks</th><th scope="col">What it finds</th><th scope="col">lootmap fix</th></tr></thead>
+        <tbody id="probes"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="block" id="promises">
+    <h2>Built to be trusted with your keys</h2>
+    <p class="intro">A tool that reads your most sensitive files has to be boring and auditable. These rules are enforced in code and checked in CI.</p>
+    <ul class="promises">
+      <li><b>No network</b><span>scan, fix, undo and doctor never open a connection. CI fails if net/http is imported anywhere but the update module.</span></li>
+      <li><b>Secrets stay masked</b><span>Matches become a SHA-256 fingerprint and a preview like <code>ghp_••••7c3b</code>. A test fails if any raw key reaches any output.</span></li>
+      <li><b>Scan only reads</b><span>Nothing is written until you run <code>lootmap fix --yes</code>, after it prints the full plan.</span></li>
+      <li><b>Every change can be undone</b><span>Originals are backed up owner-only for 7 days. <code>lootmap undo</code> restores them byte for byte.</span></li>
+      <li><b>Live sessions are left alone</b><span>AI transcripts written in the last 60 seconds are skipped, so an agent mid-task is never disturbed.</span></li>
+      <li><b>Some things are off limits</b><span>Browser password stores, OS keychains and crypto wallets are never read. No sudo, no telemetry, no account.</span></li>
+    </ul>
+  </section>
+
+  <section class="block" id="install">
+    <h2>Run it in under a minute</h2>
+    <p class="intro">lootmap is a single static binary for macOS, Linux and Windows. It is in preview; build it from source until the first signed release.</p>
+    <ol class="steps">
+      <li><div><p>Install with Go 1.23 or newer.</p><pre>go install github.com/lootmap-dev/lootmap/cmd/lootmap@latest</pre></div></li>
+      <li><div><p>See what is exposed. This only reads files.</p><pre>lootmap scan</pre></div></li>
+      <li><div><p>Preview the fixes, then apply them. Revoke anything still listed in your provider's console.</p><pre>lootmap fix --dry-run
+lootmap fix --yes
+lootmap explain --rotate   <span class="c"># links to each key's revoke page</span></pre></div></li>
+    </ol>
+  </section>
+
+  <footer>
+    <span>lootmap is open source under the Apache-2.0 license.</span>
+    <span><a href="https://github.com/lootmap-dev/lootmap">github.com/lootmap-dev/lootmap</a></span>
+  </footer>
+</div>
+
+<script>
+const OUT = {"doctor": "lootmap 0.1.0 · doctor\n\n  os        linux\n  home      ~\n  network   NONE\n  probes    12 registered\n            ai-config        not available\n            ai-transcripts   available\n            cloud            available\n            containers       not available\n            dotenv           available\n            git              available\n            iac              not available\n            npm              available\n            packages         available\n            shell-history    available\n            shell-rc         not available\n            ssh              available\n", "help": "lootmap shows what an infostealer or a Shai-Hulud style worm would take\nfrom this computer, and helps you lock it down.\n\nlootmap never uses the network by default and never prints secret values.\n\nUsage:\n  lootmap [flags]\n  lootmap [command]\n\nAvailable Commands:\n  check-packages Check lockfiles and package caches for known malicious OSV MAL- versions\n  doctor         Show the environment and which probes would run\n  explain        Explain a finding and how to remediate or rotate it\n  fix            Preview, back up, and apply safe remediations\n  help           Help about any command\n  scan           Scan this computer for exposed credentials and build a loot map\n  undo           Restore files from the most recent or specified backup snapshot\n  update-db      Download and verify the latest signed OSV MAL- advisory bundle (uses network)\n\nFlags:\n  -h, --help      help for lootmap\n  -v, --version   version for lootmap\n\nUse \"lootmap [command] --help\" for more information about a command.\n", "scan_before": "lootmap 0.1.0 · linux · 12 probes · network: NONE\n\n \u001b[1mIF MALWARE RAN ON THIS COMPUTER IT WOULD TAKE:\u001b[0m\n\n  \u001b[91m●\u001b[0m AWS account        long-lived access key · no expiry  ~/.aws/credentials\n  \u001b[91m●\u001b[0m Database           connection URI · with password     ~/.claude/…/9f2c1e.jsonl\n  \u001b[91m●\u001b[0m Git                credential.helper = store          ~/.gitconfig\n  \u001b[91m●\u001b[0m GitHub             classic PAT · repo write           ~/.zsh_history\n  \u001b[91m●\u001b[0m Stripe             live secret key · full billing     ~/.claude/…/9f2c1e.jsonl\n  \u001b[93m●\u001b[0m Anthropic          API key                            ~/.codex/…/2026-10-28.jsonl\n  \u001b[93m●\u001b[0m OpenAI             API key                            ~/.codex/…/2026-10-28.jsonl\n  \u001b[93m●\u001b[0m Private key        PEM/OpenSSH private key            ~/.ssh/id_ed25519\n  \u001b[93m●\u001b[0m Slack              workspace token                    ~/.claude/…/9f2c1e.jsonl\n  \u001b[93m●\u001b[0m SSH config         ForwardAgent yes                   ~/.ssh/config\n  \u001b[93m●\u001b[0m SSH                key readable by other users        ~/.ssh/id_ed25519\n  \u001b[93m●\u001b[0m SSH                passphraseless key                 ~/.ssh/id_ed25519\n\n \u001b[1;91mScore: 22/100 (F)\u001b[0m · 5 critical · 7 high · 0 medium\n\n 9 auto-fixable           -> lootmap fix\n 6 keys need rotation     -> lootmap explain --rotate\n", "fix_dry": "Planned changes (6):\n\n  • ~/.codex/sessions/2026-10-28.jsonl        redact 2 secrets\n  • ~/.claude/projects/acme-web/9f2c1e.jsonl  redact 3 secrets\n  • ~/.zsh_history                            redact 1 secret\n  • ~/.gitconfig                              credential.helper: store -> libsecret\n  • ~/.ssh/config                             set ForwardAgent no\n  • ~/.ssh/id_ed25519                         chmod 0600 (owner read/write only)\n\nDry run complete; no files were modified.\n", "explain_rotate": "L-ff9fccef (aws-access-key-id) · AKIA••••••QAZI\n  Rotate: https://console.aws.amazon.com/iam/home#/security_credentials\n  - Deactivate and delete the IAM access key in the AWS IAM console.\n  - Migrate local CLI usage to 'aws configure sso' (short-lived SSO credentials).\nL-0d5f2773 (github-pat-classic) · ghp_••••••7c3b\n  Rotate: https://github.com/settings/tokens\n  - Open https://github.com/settings/tokens and revoke the exposed classic Personal Access Token.\n  - Create a fine-grained token limited to the needed repositories and permissions.\n  - Run 'lootmap fix' to switch git credential.helper to the OS keychain and redact AI transcripts.\nL-797c962d (stripe-live-key) · sk_live_••••••sFRq\n  Rotate: https://dashboard.stripe.com/apikeys\n  - Roll the live secret key immediately at https://dashboard.stripe.com/apikeys.\n  - Use restricted keys and test keys (sk_test_) on developer laptops.\nL-a803a468 (anthropic-api-key) · sk-ant-••••••DZuE\n  Rotate: https://console.anthropic.com/settings/keys\n  - Revoke the key at https://console.anthropic.com/settings/keys.\n  - Move shell RC exports into a password manager or keychain reference.\nL-b0bd9456 (openai-api-key) · sk-pro••••••N89a\n  Rotate: https://platform.openai.com/api-keys\n  - Revoke the API key at https://platform.openai.com/api-keys.\n  - Run 'lootmap fix' to redact AI transcripts and shell history.\nL-bd733d1a (slack-token) · xoxb-••••••UYPV\n  Rotate: https://api.slack.com/apps\n  - Regenerate or revoke the Slack token in https://api.slack.com/apps.\n", "fix_yes": "Planned changes (6):\n\n  • ~/.claude/projects/acme-web/9f2c1e.jsonl  redact 3 secrets\n  • ~/.codex/sessions/2026-10-28.jsonl        redact 2 secrets\n  • ~/.zsh_history                            redact 1 secret\n  • ~/.gitconfig                              credential.helper: store -> libsecret\n  • ~/.ssh/config                             set ForwardAgent no\n  • ~/.ssh/id_ed25519                         chmod 0600 (owner read/write only)\n\nApplied 6 fixes. Originals backed up to ~/.lootmap/backups/20261030-172228.154429414\nBackups are deleted after 7 days. Run 'lootmap undo' to revert.\n", "scan_after": "lootmap 0.1.0 · linux · 12 probes · network: NONE\n\n \u001b[1mIF MALWARE RAN ON THIS COMPUTER IT WOULD TAKE:\u001b[0m\n\n  \u001b[91m●\u001b[0m AWS account        long-lived access key · no expiry  ~/.aws/credentials\n  \u001b[93m●\u001b[0m Private key        PEM/OpenSSH private key            ~/.ssh/id_ed25519\n  \u001b[93m●\u001b[0m SSH                passphraseless key                 ~/.ssh/id_ed25519\n\n \u001b[1;92mScore: 82/100 (B)\u001b[0m · 1 critical · 2 high · 0 medium\n\n 1 key needs rotation     -> lootmap explain --rotate\n", "undo": "Restored 6 file(s) from backup 20261030-172228.154429414.\n", "scan_json": "{\n  \"tool\": \"lootmap\",\n  \"version\": \"0.1.0\",\n  \"host\": {\n    \"os\": \"linux\"\n  },\n  \"score\": 22,\n  \"loot\": [\n    {\n      \"id\": \"L-ff9fccef\",\n      \"kind\": \"aws-access-key-id\",\n      \"impact\": \"Long-lived access to your AWS account\",\n      \"severity\": \"critical\",\n      \"fingerprint\": \"sha256:ff9fccef482187e616cc3ba428743741c93bc9a1d3c19bd91955cb3405c198b3\",\n      \"preview\": \"AKIA••••••QAZI\",\n      \"locations\": [\n        {\n          \"probe\": \"cloud\",\n          \"path\": \"~/.aws/credentials\",\n          \"line\": 2\n        }\n      ],\n      \"fixes\": [\n        \"redact-transcripts\"\n      ],\n      \"rotate\": \"https://console.aws.amazon.com/iam/home#/security_credentials\"\n    },\n    {\n      \"id\": \"L-d3b9d50d\",\n      \"kind\": \"database-url\",\n      \"impact\": \"Direct read/write access to a database with embedded credentials\",\n      \"severity\": \"critical\",\n      \"fingerprint\": \"sha256:d3b9d50de35925188ca31f878c9bfb2c7f9203d0bf535578d2275939847eed38\",\n      \"preview\": \"postgres••••••5432\",\n      \"locations\": [\n        {\n          \"probe\": \"ai-transcripts\",\n          \"path\": \"~/.claude/projects/acme-web/9f2c1e.jsonl\",\n          \"line\": 2\n        }\n      ],\n      \"fixes\": [\n        \"redact-transcripts\"\n      ]\n    },\n    {\n      \"id\": \"L-ec7623da\",\n      \"kind\": \"git-credential-helper-store\",\n      \"impact\": \"Git credentials are stored in plaintext on disk\",\n      \"severity\": \"critical\",\n      \"fingerprint\": \"config:git-credential-helper-store:~/.gitconfig\",\n      \"preview\": \"helper = store\",\n      \"locations\": [\n        {\n          \"probe\": \"git\",\n          \"path\": \"~/.gitconfig\",\n          \"line\": 4\n        }\n      ],\n      \"fixes\": [\n        \"git-credential-helper\"\n      ]\n    },\n    {\n      \"id\": \"L-0d5f2773\",\n      \"kind\": \"github-pat-classic\",\n      \"impact\": \"Write access to your GitHub repositories and packages\",\n      \"severity\": \"critical\",\n      \"fingerprint\": \"sha256:0d5f277366cc1f7746543d7bc1a88921acfcae4292af5c1f2574286f0a34fe41\",\n      \"preview\": \"ghp_••••••7c3b\",\n      \"locations\": [\n        {\n          \"probe\": \"shell-history\",\n          \"path\": \"~/.zsh_history\",\n          \"line\": 2\n        }\n      ],\n      \"fixes\": [\n        \"redact-transcripts\",\n        \"git-credential-helper\"\n      ],\n      \"rotate\": \"https://github.com/settings/tokens\"\n    },\n    {\n      \"id\": \"L-797c962d\",\n      \"kind\": \"stripe-live-key\",\n      \"impact\": \"Full live access to your Stripe payments and customer data\",\n      \"severity\": \"critical\",\n      \"fingerprint\": \"sha256:797c962d35c50cf08836c5e4c85f88b8d6f9842e40afd124c5283fa8b4188da7\",\n      \"preview\": \"sk_live_••••••sFRq\",\n      \"locations\": [\n        {\n          \"probe\": \"ai-transcripts\",\n          \"path\": \"~/.claude/projects/acme-web/9f2c1e.jsonl\",\n          \"line\": 2\n        }\n      ],\n      \"fixes\": [\n        \"redact-transcripts\"\n      ],\n      \"rotate\": \"https://dashboard.stripe.com/apikeys\"\n    },\n    {\n      \"id\": \"L-a803a468\",\n      \"kind\": \"anthropic-api-key\",\n      \"impact\": \"Spend your Anthropic API quota\",\n      \"severity\": \"high\",\n      \"fingerprint\": \"sha256:a803a4683bba0bb1e59c8fb6440ed136ee36906a9b195cedb1482e4d191ee057\",\n      \"preview\": \"sk-ant-••••••DZuE\",\n      \"locations\": [\n        {\n          \"probe\": \"ai-transcripts\",\n          \"path\": \"~/.codex/sessions/2026-10-28.jsonl\",\n          \"line\": 2\n        }\n      ],\n      \"fixes\": [\n        \"redact-transcripts\"\n      ],\n      \"rotate\": \"https://console.anthropic.com/settings/keys\"\n    },\n    {\n      \"id\": \"L-b0bd9456\",\n      \"kind\": \"openai-api-key\",\n      \"impact\": \"Spend your OpenAI API quota and read stored files/assistants\",\n      \"severity\": \"high\",\n      \"fingerprint\": \"sha256:b0bd94560d0c977163b5813c26c0bb18320e19e21e7f732925454ba3e42a959b\",\n      \"preview\": \"sk-pro••••••N89a\",\n      \"locations\": [\n        {\n          \"probe\": \"ai-transcripts\",\n          \"path\": \"~/.codex/sessions/2026-10-28.jsonl\",\n          \"line\": 1\n        }\n      ],\n      \"fixes\": [\n        \"redact-transcripts\"\n      ],\n      \"rotate\": \"https://platform.openai.com/api-keys\"\n    },\n    {\n      \"id\": \"L-dbf5611f\",\n      \"kind\": \"private-key-pem\",\n      \"impact\": \"Authenticate as you to SSH servers or sign artifacts\",\n      \"severity\": \"high\",\n      \"fingerprint\": \"sha256:dbf5611f9dfbd018bd9c094efe8ddffa2ec7ec64fd1d10f507f321666158d345\",\n      \"preview\": \"-----BEGIN ••••••----\",\n      \"locations\": [\n        {\n          \"probe\": \"ssh\",\n          \"path\": \"~/.ssh/id_ed25519\",\n          \"line\": 1\n        }\n      ],\n      \"fixes\": [\n        \"ssh-permissions\"\n      ]\n    },\n    {\n      \"id\": \"L-bd733d1a\",\n      \"kind\": \"slack-token\",\n      \"impact\": \"Read and post messages in your Slack workspace\",\n      \"severity\": \"high\",\n      \"fingerprint\": \"sha256:bd733d1a35e8b4adcec826f40664844ad596fb8ddc78929d80483a83dcd88355\",\n      \"preview\": \"xoxb-••••••UYPV\",\n      \"locations\": [\n        {\n          \"probe\": \"ai-transcripts\",\n          \"path\": \"~/.claude/projects/acme-web/9f2c1e.jsonl\",\n          \"line\": 2\n        }\n      ],\n      \"fixes\": [\n        \"redact-transcripts\"\n      ],\n      \"rotate\": \"https://api.slack.com/apps\"\n    },\n    {\n      \"id\": \"L-b2d35169\",\n      \"kind\": \"ssh-forward-agent\",\n      \"impact\": \"SSH agent forwarding exposes local keys to compromised remote hosts\",\n      \"severity\": \"high\",\n      \"fingerprint\": \"config:ssh-forward-agent:~/.ssh/config\",\n      \"preview\": \"ForwardAgent yes\",\n      \"locations\": [\n        {\n          \"probe\": \"ssh\",\n          \"path\": \"~/.ssh/config\",\n          \"line\": 2\n        }\n      ],\n      \"fixes\": [\n        \"ssh-disable-forward-agent\"\n      ]\n    },\n    {\n      \"id\": \"L-40349170\",\n      \"kind\": \"ssh-key-permissions\",\n      \"impact\": \"SSH private key has overly permissive file mode\",\n      \"severity\": \"high\",\n      \"fingerprint\": \"config:ssh-key-permissions:~/.ssh/id_ed25519\",\n      \"preview\": \"readable by group/other\",\n      \"locations\": [\n        {\n          \"probe\": \"ssh\",\n          \"path\": \"~/.ssh/id_ed25519\",\n          \"line\": 1\n        }\n      ],\n      \"fixes\": [\n        \"ssh-permissions\"\n      ]\n    },\n    {\n      \"id\": \"L-7c156490\",\n      \"kind\": \"ssh-key-unencrypted\",\n      \"impact\": \"Passphraseless SSH private key can be used immediately if stolen\",\n      \"severity\": \"high\",\n      \"fingerprint\": \"config:ssh-key-unencrypted:~/.ssh/id_ed25519\",\n      \"preview\": \"id_ed25519 (no passphrase)\",\n      \"locations\": [\n        {\n          \"probe\": \"ssh\",\n          \"path\": \"~/.ssh/id_ed25519\",\n          \"line\": 1\n        }\n      ],\n      \"fixes\": [\n        \"ssh-permissions\"\n      ]\n    }\n  ]\n}\n"};
+
+/* ---------- Probe legend ---------- */
+const PROBES = [
+  ["ai-transcripts", "~/.claude/projects, ~/.codex/sessions, Gemini, Cursor, Windsurf, Copilot", "Keys pasted into chats or printed in tool output", "Redacts in place", "loot"],
+  ["shell-history", "zsh, bash, fish, PowerShell history", "Tokens typed on the command line", "Redacts in place", "warn"],
+  ["cloud", "~/.aws, ~/.config/gcloud, ~/.azure", "Long-lived AWS keys, GCP service accounts", "Rotation steps", "loot"],
+  ["git", "~/.git-credentials, git config, gh hosts", "Plaintext tokens, credential.helper = store", "Moves to OS keychain", "loot"],
+  ["npm", "~/.npmrc, ~/.pypirc", "Publish tokens, install scripts enabled", "Sets ignore-scripts", "loot"],
+  ["ssh", "~/.ssh", "Keys without passphrase, ForwardAgent yes, loose permissions", "chmod 600, ForwardAgent no", "warn"],
+  ["ai-config", "~/.claude.json, Claude Desktop, ~/.cursor/mcp.json", "Tokens inside MCP server definitions", "Rotation steps", "warn"],
+  ["shell-rc", ".zshrc, .bashrc, .profile, PowerShell profiles", "export OPENAI_API_KEY=… in startup files", "Rotation steps", "warn"],
+  ["dotenv", "~/code, ~/projects, ~/dev, ~/src", "Production keys and database URLs in .env files", "Rotation steps", "warn"],
+  ["containers", "~/.docker/config.json, ~/.kube/config", "Registry passwords, cluster tokens", "chmod 600", "warn"],
+  ["iac", "Terraform Cloud and Pulumi credentials", "Long-lived infrastructure tokens", "chmod 600", "warn"],
+  ["packages", "package-lock.json, pnpm-lock.yaml, yarn.lock", "Known malicious package versions", "Incident steps", "loot"],
+];
+const AUTO = new Set(["Redacts in place", "Moves to OS keychain", "Sets ignore-scripts", "chmod 600, ForwardAgent no", "chmod 600"]);
+document.getElementById("probes").innerHTML = PROBES.map(([id, where, what, fix, sev]) =>
+  `<tr><td><i style="background:var(--${sev})"></i>${id}</td><td>${where}</td><td>${what}</td><td class="fixcell"><span class="tag ${AUTO.has(fix) ? "auto" : "manual"}">${fix}</span></td></tr>`
+).join("");
+
+/* ---------- Copy install command ---------- */
+document.getElementById("copybtn").addEventListener("click", async (e) => {
+  const btn = e.currentTarget;
+  try {
+    await navigator.clipboard.writeText("go install github.com/lootmap-dev/lootmap/cmd/lootmap@latest");
+    btn.textContent = "Copied";
+  } catch (_) {
+    btn.textContent = "Select and copy";
+  }
+  setTimeout(() => (btn.textContent = "Copy"), 1800);
+});
+
+/* ---------- Terminal ---------- */
+const screen = document.getElementById("screen");
+const input = document.getElementById("cmd");
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let state = { fixed: false, hasBackup: false };
+let busy = false;
+let runToken = 0;
+
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function ansiToHtml(text) {
+  let html = "", open = false;
+  const parts = text.split(/\x1b\[([0-9;]*)m/);
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) { html += esc(parts[i]); continue; }
+    if (open) { html += "</span>"; open = false; }
+    const codes = parts[i].split(";").filter(Boolean);
+    if (!codes.length || (codes.length === 1 && codes[0] === "0")) continue;
+    const cls = [];
+    for (const c of codes) {
+      if (c === "1") cls.push("b");
+      else if (c === "91" || c === "31") cls.push("r");
+      else if (c === "93" || c === "33") cls.push("y");
+      else if (c === "92" || c === "32") cls.push("g");
+    }
+    if (cls.length) { html += `<span class="${cls.join(" ")}">`; open = true; }
+  }
+  if (open) html += "</span>";
+  return html;
+}
+const PROMPT = '<span class="p">~ ❯</span> ';
+function print(html) { screen.insertAdjacentHTML("beforeend", html); screen.scrollTop = screen.scrollHeight; }
+const sleep = (ms) => new Promise((r) => setTimeout(r, reduce ? 0 : ms));
+
+async function typeCmd(cmd, token) {
+  print(PROMPT);
+  if (reduce) { print(esc(cmd) + "\n"); return; }
+  for (const ch of cmd) {
+    if (token !== runToken) return;
+    print(esc(ch));
+    await sleep(38 + Math.random() * 30);
+  }
+  print("\n");
+}
+async function stream(text, token, perLine = 26) {
+  const lines = text.replace(/\n$/, "").split("\n");
+  for (const line of lines) {
+    if (token !== runToken) return;
+    print(ansiToHtml(line) + "\n");
+    await sleep(perLine);
+  }
+  print("\n");
+}
+
+function respond(raw) {
+  let c = raw.trim().replace(/\s+/g, " ");
+  if (c.startsWith("lootmap ")) c = c.slice(8);
+  else if (c === "lootmap") c = "help";
+  switch (c) {
+    case "": return { text: "" };
+    case "clear": return { clear: true };
+    case "reset": state = { fixed: false, hasBackup: false }; return { clear: true, text: "Demo home restored to its original state.\n", after: "before" };
+    case "help": case "--help": case "-h": return { text: OUT.help };
+    case "--version": case "-v": return { text: "lootmap version 0.1.0\n" };
+    case "doctor": return { text: OUT.doctor };
+    case "scan": case "scan --no-color": return { text: state.fixed ? OUT.scan_after : OUT.scan_before, after: state.fixed ? "after" : "before" };
+    case "scan --format json": return { text: OUT.scan_json };
+    case "fix --dry-run": case "fix":
+      if (state.fixed) return { text: "No automatic fixes to apply.\n" };
+      return { text: c === "fix" ? OUT.fix_dry.replace("Dry run complete; no files were modified.", "Re-run with --yes to apply these changes (backups are saved for 7 days).") : OUT.fix_dry };
+    case "fix --yes":
+      if (state.fixed) return { text: "No automatic fixes to apply.\n" };
+      state.fixed = true; state.hasBackup = true;
+      return { text: OUT.fix_yes, after: "after", slow: true };
+    case "undo":
+      if (!state.hasBackup) return { text: "lootmap: no backups available\n" };
+      state.fixed = false; state.hasBackup = false;
+      return { text: OUT.undo, after: "before" };
+    case "explain --rotate": return { text: state.fixed ? OUT.explain_rotate.split(/\n(?=L-)/).filter(b => b.includes("aws-access-key-id")).join("\n") + "\n" : OUT.explain_rotate };
+    default:
+      const word = c.split(" ")[0];
+      if (["sudo", "rm", "cat", "curl", "ls", "cd"].includes(word)) return { text: `This demo only runs lootmap commands. Try 'lootmap scan'.\n` };
+      return { text: `lootmap: unknown command "${esc(word)}" for "lootmap"\nTry 'lootmap help' or one of the commands below.\n` };
+  }
+}
+
+async function run(cmd, { typed = true } = {}) {
+  const token = ++runToken;
+  busy = true;
+  if (typed) await typeCmd(cmd, token); else print(PROMPT + esc(cmd) + "\n");
+  const r = respond(cmd);
+  if (token !== runToken) return;
+  if (r.clear) screen.innerHTML = "";
+  if (r.text) await stream(r.text, token, r.slow ? 120 : 26);
+  if (r.after) setMap(r.after, true);
+  busy = false;
+}
+
+document.getElementById("promptform").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const v = input.value;
+  input.value = "";
+  run(v, { typed: false });
+});
+document.querySelectorAll(".chips button").forEach((b) => b.addEventListener("click", () => run(b.dataset.cmd)));
+
+async function replay() {
+  const token = ++runToken;
+  state = { fixed: false, hasBackup: false };
+  screen.innerHTML = "";
+  setMap("none", false);
+  await sleep(300);
+  for (const cmd of ["lootmap scan", "lootmap fix --yes", "lootmap scan"]) {
+    if (token !== runToken) return;
+    await typeCmd(cmd, token);
+    if (token !== runToken) return;
+    const r = respond(cmd);
+    await stream(r.text, token, r.slow ? 140 : 40);
+    if (token !== runToken) return;
+    if (r.after) setMap(r.after, true);
+    await sleep(1400);
+  }
+}
+document.getElementById("replay").addEventListener("click", replay);
+
+/* ---------- Loot map ---------- */
+const svg = document.getElementById("mapsvg");
+const NS = "http://www.w3.org/2000/svg";
+// Places on the map. type: dir or file; parent links make the trails.
+const PLACES = [
+  { id: "aws", label: ".aws", x: 150, y: 52, dir: true, labelBelow: true },
+  { id: "awsc", label: "credentials", x: 268, y: 52, parent: "aws" },
+  { id: "claude", label: ".claude/projects/acme-web", x: 150, y: 120, dir: true, labelBelow: true },
+  { id: "cl1", label: "9f2c1e.jsonl", x: 316, y: 120, parent: "claude" },
+  { id: "codex", label: ".codex/sessions", x: 150, y: 196, dir: true, labelBelow: true },
+  { id: "cx1", label: "2026-10-28.jsonl", x: 300, y: 196, parent: "codex" },
+  { id: "ssh", label: ".ssh", x: 150, y: 272, dir: true, labelBelow: true },
+  { id: "sshk", label: "id_ed25519", x: 268, y: 254, parent: "ssh" },
+  { id: "sshc", label: "config", x: 268, y: 300, parent: "ssh" },
+  { id: "zsh", label: ".zsh_history", x: 150, y: 352 },
+  { id: "git", label: ".gitconfig", x: 150, y: 402 },
+  { id: "npm", label: ".npmrc", x: 150, y: 448 },
+];
+const ROOT = { x: 44, y: 250 };
+const LOOT = {
+  before: {
+    awsc: [["critical", "AWS account · long-lived access key"]],
+    cl1: [["critical", "Database · connection URI with password"], ["critical", "Stripe · live secret key"], ["high", "Slack · workspace token"]],
+    cx1: [["high", "Anthropic · API key"], ["high", "OpenAI · API key"]],
+    zsh: [["critical", "GitHub · classic PAT, repo write"]],
+    git: [["critical", "Git · credential.helper = store"]],
+    sshk: [["high", "Private key · OpenSSH"], ["high", "SSH · readable by other users"], ["high", "SSH · passphraseless key"]],
+    sshc: [["high", "SSH config · ForwardAgent yes"]],
+  },
+  after: {
+    awsc: [["critical", "AWS account · long-lived access key"]],
+    sshk: [["high", "Private key · OpenSSH"], ["high", "SSH · passphraseless key"]],
+  },
+};
+const SCORES = { before: [22, "F", "var(--loot)"], after: [82, "B", "var(--safe)"], none: ["–", "", "var(--muted)"] };
+const pos = Object.fromEntries(PLACES.map((p) => [p.id, p]));
+
+function el(name, attrs, parent) {
+  const n = document.createElementNS(NS, name);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  (parent || svg).appendChild(n);
+  return n;
+}
+function drawBase() {
+  for (const p of PLACES) {
+    const from = p.parent ? pos[p.parent] : ROOT;
+    const fx = from.x + (p.parent ? 6 : 14), fy = from.y;
+    const mx = p.parent ? from.x + 40 : ROOT.x + 50;
+    el("path", { class: "trail", d: `M${fx} ${fy} H${mx} V${p.y} H${p.x - 6}` });
+  }
+  el("text", { class: "root", x: ROOT.x - 16, y: ROOT.y + 8 }).textContent = "~";
+  for (const p of PLACES) {
+    el("circle", { class: "node", cx: p.x, cy: p.y, r: p.dir ? 5 : 4 });
+    const t = el("text", { class: "place" + (p.dir ? " dir" : ""), x: p.x + 10, y: p.labelBelow ? p.y + 20 : p.y + 4 });
+    if (p.labelBelow) t.setAttribute("x", p.x - 4);
+    t.textContent = p.label;
+  }
+}
+const pinLayer = el("g", {});
+drawBase();
+svg.appendChild(pinLayer);
+
+const tip = document.getElementById("tip");
+const mapBox = document.querySelector(".map");
+function showTip(evt, place, items, cleared) {
+  const sev = { critical: "var(--loot)", high: "var(--warn)" };
+  tip.innerHTML = `<code>~/${place}</code>` + (cleared ? "Cleaned by lootmap fix" :
+    items.map(([s, t]) => `<div><span style="color:${sev[s]}">●</span> ${esc(t)}</div>`).join(""));
+  const r = mapBox.getBoundingClientRect(), b = evt.currentTarget.getBoundingClientRect();
+  tip.style.left = Math.min(r.width - 270, Math.max(8, b.left - r.left - 20)) + "px";
+  tip.style.top = (b.bottom - r.top + 8) + "px";
+  tip.classList.add("on");
+}
+function hideTip() { tip.classList.remove("on"); }
+const FULLPATH = { awsc: ".aws/credentials", cl1: ".claude/projects/acme-web/9f2c1e.jsonl", cx1: ".codex/sessions/2026-10-28.jsonl", zsh: ".zsh_history", git: ".gitconfig", sshk: ".ssh/id_ed25519", sshc: ".ssh/config" };
+
+function setMap(which, animate) {
+  pinLayer.innerHTML = "";
+  hideTip();
+  const loot = LOOT[which] || {};
+  const before = LOOT.before;
+  let i = 0;
+  for (const id of Object.keys(before)) {
+    const p = pos[id];
+    const items = loot[id];
+    const g = el("g", { tabindex: "0", role: "button" }, pinLayer);
+    if (items) {
+      const crit = items.some((x) => x[0] === "critical");
+      g.setAttribute("class", "pin" + (animate && !reduce ? " drop" : ""));
+      g.style.animationDelay = (i++ * 70) + "ms";
+      const cx = p.x, cy = p.y - 9;
+      el("path", { class: "head", fill: crit ? "var(--loot)" : "var(--warn)", d: `M${cx} ${p.y - 1} C${cx} ${p.y - 1} ${cx - 11} ${cy - 2} ${cx - 11} ${cy - 9} a11 11 0 0 1 22 0 C${cx + 11} ${cy - 2} ${cx} ${p.y - 1} ${cx} ${p.y - 1}Z` }, g);
+      el("text", { x: cx, y: cy - 5 }, g).textContent = items.length;
+      g.setAttribute("aria-label", `~/${FULLPATH[id]}: ${items.length} finding${items.length > 1 ? "s" : ""}`);
+      g.addEventListener("mouseenter", (e) => showTip(e, FULLPATH[id], items, false));
+      g.addEventListener("focus", (e) => showTip(e, FULLPATH[id], items, false));
+    } else if (which !== "none") {
+      g.setAttribute("class", "cleared");
+      el("circle", { cx: p.x, cy: p.y - 14, r: 9 }, g);
+      el("path", { d: `M${p.x - 4} ${p.y - 14} l3 3 l5 -6` }, g);
+      g.setAttribute("aria-label", `~/${FULLPATH[id]}: cleaned`);
+      g.addEventListener("mouseenter", (e) => showTip(e, FULLPATH[id], [], true));
+      g.addEventListener("focus", (e) => showTip(e, FULLPATH[id], [], true));
+    }
+    g.addEventListener("mouseleave", hideTip);
+    g.addEventListener("blur", hideTip);
+  }
+  const [score, grade, color] = SCORES[which] || SCORES.none;
+  const sv = document.getElementById("scoreval");
+  sv.textContent = score; sv.style.color = color;
+  document.getElementById("scoregrade").textContent = grade ? `/100 · ${grade}` : "";
+  const counts = { before: "12 findings in 7 files", after: "3 findings in 2 files · 5 files cleaned", none: "Scanning…" };
+  document.getElementById("mapsub").textContent = counts[which] || "";
+}
+
+/* Complete at rest: open with the first scan already on screen. */
+print(PROMPT + "lootmap scan\n");
+print(ansiToHtml(OUT.scan_before.replace(/\n$/, "")) + "\n\n");
+setMap("before", false);
+screen.scrollTop = 0;
+
+/* ---------- Contour background ---------- */
+(function contours() {
+  const c = document.getElementById("contours");
+  const ctx = c.getContext("2d");
+  function draw() {
+    const w = c.clientWidth, h = c.clientHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    c.width = w * dpr; c.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = "rgba(120, 140, 125, 0.22)";
+    ctx.lineWidth = 1;
+    const cx = w * 0.82, cy = 170;
+    for (let k = 1; k <= 22; k++) {
+      ctx.beginPath();
+      for (let a = 0; a <= Math.PI * 2 + 0.05; a += 0.04) {
+        const wob = 1 + 0.12 * Math.sin(3 * a + k * 0.5) + 0.07 * Math.sin(5 * a - k * 0.3);
+        const r = k * 26 * wob;
+        const x = cx + Math.cos(a) * r * 1.5, y = cy + Math.sin(a) * r;
+        a === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  }
+  draw();
+  let t; window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(draw, 150); });
+})();
+</script>
+</body>
+</html>

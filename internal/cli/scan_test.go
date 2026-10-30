@@ -3,6 +3,8 @@ package cli_test
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -125,19 +127,26 @@ func TestAllFakeSecretsNeverLeakToStdoutStderrOrJSON(t *testing.T) {
 	}
 
 	e := fake(t, "linux", "linux-dev")
-	stdout, stderr, err := run(t, e, reg, "scan", "--format", "json")
-	if err != nil {
-		t.Fatalf("scan failed: %v", err)
-	}
-
-	combined := stdout + "\n" + stderr
-	for i, raw := range secrets {
-		if strings.Contains(combined, raw) {
-			t.Fatalf("LEAK DETECTED for %s: raw secret appeared in CLI output", kinds[i])
+	for _, format := range []string{"json", "pretty", "markdown", "html"} {
+		reportPath := filepath.Join(t.TempDir(), "report."+format)
+		stdout, stderr, err := run(t, e, reg, "scan", "--format", format, "--output", reportPath)
+		if err != nil {
+			t.Fatalf("scan --format %s failed: %v", format, err)
 		}
-	}
-	if strings.Contains(combined, e.Home()) {
-		t.Fatalf("LEAK DETECTED: absolute home directory %q appeared in CLI output", e.Home())
+		report, err := os.ReadFile(filepath.Clean(reportPath)) // #nosec G304
+		if err != nil {
+			t.Fatalf("read %s report: %v", format, err)
+		}
+
+		combined := stdout + "\n" + stderr + "\n" + string(report)
+		for i, raw := range secrets {
+			if strings.Contains(combined, raw) {
+				t.Fatalf("LEAK DETECTED for %s in %s output: raw secret appeared", kinds[i], format)
+			}
+		}
+		if strings.Contains(combined, e.Home()) {
+			t.Fatalf("LEAK DETECTED: absolute home directory %q appeared in %s output", e.Home(), format)
+		}
 	}
 }
 

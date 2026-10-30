@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lootmap report</title>
+<style>
+/* Same visual language as the lootmap site: survey paper, slate terminal, map pins.
+   System fonts only: this file must never reach the network. */
+:root {
+  --paper: #e6eae2;
+  --paper-deep: #dbe1d7;
+  --ink: #17232b;
+  --muted: #56666b;
+  --rule: #c6d0c5;
+  --critical: #d7263d;
+  --high: #c98200;
+  --medium: #5c7c8a;
+  --low: #8a979b;
+  --good: #1d8467;
+  --term: #131c22;
+  --term-fg: #d5dee2;
+  --sans: "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Roboto, Arial, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.55 var(--sans); }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 64px; }
+a { color: inherit; text-underline-offset: 3px; }
+a:hover { color: var(--critical); }
+:focus-visible { outline: 3px solid var(--critical); outline-offset: 2px; }
+code { font-family: var(--mono); font-size: .9em; }
+
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 22px 0; border-bottom: 2px solid var(--ink); }
+.mark { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; }
+.mark svg { width: 18px; height: 23px; }
+.meta { font: 13px/1.4 var(--mono); color: var(--muted); }
+.meta b { color: var(--good); font-weight: 600; }
+
+.head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px 40px; align-items: end; padding: 40px 0 30px; }
+h1 { margin: 0; font-size: clamp(30px, 4.6vw, 50px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 800; text-wrap: balance; max-width: 18ch; }
+.summary { margin: 14px 0 0; color: #2b3a41; font-size: 18px; max-width: 58ch; }
+.score { text-align: right; font-variant-numeric: tabular-nums; }
+.score .n { font-size: 84px; line-height: .9; font-weight: 800; letter-spacing: -0.04em; }
+.score .g { display: block; margin-top: 6px; color: var(--muted); font-size: 15px; }
+.tone-bad .n { color: var(--critical); }
+.tone-warn .n { color: var(--high); }
+.tone-good .n { color: var(--good); }
+.counts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: var(--paper-deep); font-size: 14px; font-weight: 600; }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.sev-critical { background: var(--critical); }
+.sev-high { background: var(--high); }
+.sev-medium { background: var(--medium); }
+.sev-low { background: var(--low); }
+
+h2 { margin: 48px 0 6px; font-size: 26px; letter-spacing: -0.02em; font-weight: 800; }
+.intro { margin: 0 0 18px; color: var(--muted); max-width: 64ch; }
+
+/* Loot map: every file is a place on the trail, with one pin per finding. */
+.map { position: relative; margin: 0; padding: 6px 0 6px 28px; list-style: none; background: var(--paper-deep); border-radius: 14px; }
+.map::before { content: ""; position: absolute; left: 30px; top: 22px; bottom: 22px; border-left: 1.5px dashed #8d9c96; }
+.map li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 18px; align-items: center; padding: 12px 22px 12px 26px; }
+.map li + li { border-top: 1px solid rgba(23, 35, 43, .08); }
+.map li::before { content: ""; position: absolute; left: -3px; top: 50%; width: 9px; height: 9px; margin-top: -5px; border-radius: 50%; background: var(--paper); border: 1.5px solid #8d9c96; }
+.map .path { font: 14px/1.4 var(--mono); overflow-wrap: anywhere; }
+.pins { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.pin { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 999px; background: var(--paper); font-size: 13px; white-space: nowrap; }
+
+/* Findings */
+.findings { margin: 0; padding: 0; list-style: none; border-top: 2px solid var(--ink); }
+.finding { display: grid; grid-template-columns: 6px minmax(0, 1fr); gap: 0 18px; padding: 18px 0; border-bottom: 1px solid var(--rule); }
+.stripe { border-radius: 3px; }
+.f-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.f-title { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+.f-short { color: var(--muted); }
+.f-impact { margin: 4px 0 8px; }
+.f-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; font-size: 14px; }
+.f-grid dt { color: var(--muted); }
+.f-grid dd { margin: 0; font-family: var(--mono); font-size: 13px; overflow-wrap: anywhere; }
+.f-grid dd.sans { font-family: var(--sans); font-size: 14px; }
+.tag { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 13px; font-weight: 600; font-family: var(--sans); }
+.tag.auto { background: rgba(29, 132, 103, .14); color: #11664f; }
+.tag.manual { background: rgba(215, 38, 61, .1); color: #a3162a; }
+.steps { margin: 8px 0 0; padding-left: 18px; font-size: 14px; color: #2b3a41; }
+.steps li + li { margin-top: 2px; }
+
+.term { margin-top: 10px; background: var(--term); color: var(--term-fg); border-radius: 12px; padding: 18px 20px; font: 14px/1.7 var(--mono); overflow-x: auto; white-space: pre; }
+.term .p { color: #8fd3ff; }
+.term .c { color: #7f8f96; }
+
+.clean { padding: 40px 28px; border-radius: 14px; background: var(--paper-deep); font-size: 18px; }
+footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 14px; }
+
+@media (max-width: 640px) {
+  .wrap { padding: 0 16px 48px; }
+  .head { grid-template-columns: minmax(0, 1fr); }
+  .score { text-align: left; }
+  .map li { grid-template-columns: minmax(0, 1fr); }
+  .pins { justify-content: flex-start; }
+}
+@media print {
+  body { background: #fff; }
+  .map, .clean { background: #f3f5f1; }
+  .term { background: #fff; color: var(--ink); border: 1px solid var(--rule); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <span class="mark"><svg viewBox="0 0 22 28" aria-hidden="true"><path d="M11 27C11 27 1.5 16.6 1.5 10.5a9.5 9.5 0 0 1 19 0C20.5 16.6 11 27 11 27Z" fill="#d7263d"/><circle cx="11" cy="10.5" r="3.6" fill="#e6eae2"/></svg>lootmap</span>
+    <span class="meta">report · {{.OS}} · lootmap {{.Version}} · network: <b>none</b> · secret values masked</span>
+  </header>
+
+{{if .Items}}
+  <section class="head">
+    <div>
+      <h1>If malware ran on this computer, it would take {{.Total}} thing{{if ne .Total 1}}s{{end}}.</h1>
+      <p class="summary">Found in {{.Files}} file{{if ne .Files 1}}s{{end}} under your home folder. {{if .AutoFix}}{{.AutoFix}} can be cleaned up automatically with <code>lootmap fix</code>.{{end}} {{if .Rotate}}{{.Rotate}} key{{if ne .Rotate 1}}s{{end}} should be revoked and replaced.{{end}}</p>
+      <div class="counts">
+        {{if .Critical}}<span class="chip"><span class="dot sev-critical"></span>{{.Critical}} critical</span>{{end}}
+        {{if .High}}<span class="chip"><span class="dot sev-high"></span>{{.High}} high</span>{{end}}
+        {{if .Medium}}<span class="chip"><span class="dot sev-medium"></span>{{.Medium}} medium</span>{{end}}
+        {{if .Low}}<span class="chip"><span class="dot sev-low"></span>{{.Low}} low</span>{{end}}
+      </div>
+    </div>
+    <div class="score tone-{{.GradeTone}}" aria-label="Score {{.Score}} out of 100, grade {{.Grade}}">
+      <span class="n">{{.Score}}</span>
+      <span class="g">out of 100 · grade {{.Grade}}</span>
+    </div>
+  </section>
+
+  <h2>Loot map</h2>
+  <p class="intro">Every file that holds something worth stealing, with one pin per finding.</p>
+  <ul class="map">
+  {{range .Places}}
+    <li>
+      <span class="path">{{.Path}}</span>
+      <span class="pins">{{range .Items}}<span class="pin"><span class="dot sev-{{.Severity}}"></span>{{.Title}}</span>{{end}}</span>
+    </li>
+  {{end}}
+  </ul>
+
+  <h2>Findings</h2>
+  <p class="intro">Most severe first. Previews show only the first and last characters of each key.</p>
+  <ol class="findings">
+  {{range .Items}}
+    <li class="finding" id="{{.ID}}">
+      <span class="stripe sev-{{.Severity}}" aria-hidden="true"></span>
+      <div>
+        <div class="f-top"><span class="f-title">{{.Title}}</span><span class="f-short">{{.Short}}</span></div>
+        <p class="f-impact">{{.Impact}}</p>
+        <dl class="f-grid">
+          <dt>Severity</dt><dd class="sans">{{.Severity}}</dd>
+          <dt>Preview</dt><dd>{{.Preview}}</dd>
+          <dt>Found in</dt><dd>{{range $i, $l := .Locations}}{{if $i}}<br>{{end}}{{$l}}{{end}}</dd>
+          <dt>Next step</dt><dd class="sans">{{if and .AutoFix .Rotate}}<span class="tag auto">lootmap fix removes this copy</span> · the key was exposed, so also <a href="{{.Rotate}}" rel="noreferrer noopener">revoke it</a>{{else if .AutoFix}}<span class="tag auto">Cleaned by lootmap fix</span>{{else}}<span class="tag manual">Revoke or change it yourself</span>{{if .Rotate}} · <a href="{{.Rotate}}" rel="noreferrer noopener">revoke page</a>{{end}}{{end}}</dd>
+        </dl>
+        {{if .Steps}}<ol class="steps">{{range .Steps}}<li>{{.}}</li>{{end}}</ol>{{end}}
+      </div>
+    </li>
+  {{end}}
+  </ol>
+
+  <h2>What to do now</h2>
+  <p class="intro">Fixes are previewed first, every changed file is backed up, and <code>lootmap undo</code> puts it all back.</p>
+  <div class="term"><span class="p">~ ❯</span> lootmap fix --dry-run      <span class="c"># see exactly what would change</span>
+<span class="p">~ ❯</span> lootmap fix --yes          <span class="c"># apply it</span>
+<span class="p">~ ❯</span> lootmap explain --rotate   <span class="c"># revoke pages for every exposed key</span>
+<span class="p">~ ❯</span> lootmap scan --format html --output lootmap-report.html   <span class="c"># check again</span></div>
+{{else}}
+  <section class="head">
+    <div>
+      <h1>Nothing worth stealing was found.</h1>
+      <p class="summary">lootmap checked the usual places infostealers look and found no exposed keys or risky settings.</p>
+    </div>
+    <div class="score tone-{{.GradeTone}}"><span class="n">{{.Score}}</span><span class="g">out of 100 · grade {{.Grade}}</span></div>
+  </section>
+  <div class="clean">Run <code>lootmap scan</code> again after installing new tools or AI agents.</div>
+{{end}}
+
+  <footer>Generated offline by lootmap {{.Version}}. This page loads nothing from the internet and contains masked previews only, so it is safe to share with your security team.</footer>
+</div>
+</body>
+</html>

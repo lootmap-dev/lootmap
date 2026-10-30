@@ -178,21 +178,22 @@ func (r RedactFixer) Plan(e env.Env, findings []probes.Finding, opts Options) (P
 		if err != nil {
 			continue
 		}
-		// Live session protection for AI transcripts modified within 60s.
-		if r.targetProbe == "ai-transcripts" && !opts.Force {
-			if opts.now().Sub(st.ModTime()) < LiveSessionWindow {
-				plan.Skipped = append(plan.Skipped, fmt.Sprintf("~/%s (modified <60s ago; use --force to override)", rel))
-				continue
-			}
-		}
-
 		orig, err := os.ReadFile(filepath.Clean(absPath)) // #nosec G304 -- validated relative path inside Home
 		if err != nil {
 			continue
 		}
 		redacted, count := redactBytes(orig, rawRegs)
 		if count == 0 {
+			// Nothing left to redact (for example, already fixed): no change
+			// and no live-session warning.
 			continue
+		}
+		// Live session protection for AI transcripts modified within 60s.
+		if r.targetProbe == "ai-transcripts" && !opts.Force {
+			if opts.now().Sub(st.ModTime()) < LiveSessionWindow {
+				plan.Skipped = append(plan.Skipped, fmt.Sprintf("~/%s (modified <60s ago; use --force to override)", rel))
+				continue
+			}
 		}
 		plan.Changes = append(plan.Changes, FileChange{
 			FixerID:     r.id,
@@ -422,7 +423,13 @@ func (p PermissionsFixer) Plan(e env.Env, findings []probes.Finding, _ Options) 
 		}
 		seen[rel] = true
 		absPath := filepath.Join(e.Home(), filepath.FromSlash(rel))
-		if _, err := os.Stat(absPath); err != nil {
+		st, err := os.Stat(absPath)
+		if err != nil {
+			continue
+		}
+		// Already owner-only: nothing to do, so `lootmap fix` stays idempotent.
+		// Windows reports synthetic modes, so this check only applies elsewhere.
+		if e.OS() != "windows" && st.Mode().Perm()&0o077 == 0 {
 			continue
 		}
 		plan.Changes = append(plan.Changes, FileChange{

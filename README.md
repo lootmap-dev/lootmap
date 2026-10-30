@@ -15,7 +15,8 @@ API keys your AI coding agent quietly saved to disk. Then it helps you lock it d
 
 <img src="docs/demo.gif" alt="lootmap scan finds 12 exposed secrets, lootmap fix redacts and hardens them, and the score goes from F to B" width="860">
 
-<sub>Recorded against a demo home directory filled with fake keys. Nothing in this GIF is real.</sub>
+<sub>Recorded against a demo home directory filled with fake keys. Nothing in this GIF is real.<br>
+Try it in your browser on the <a href="https://lootmap-dev.github.io/lootmap/">project site</a>.</sub>
 
 </div>
 
@@ -143,6 +144,21 @@ lootmap reads the most sensitive files you have, so it is built to be boring and
 
 lootmap never revokes or deletes keys for you. Rotation happens in your provider's console;
 `lootmap explain --rotate` links you straight there.
+
+## HTML report
+
+Prefer a browser view? One command writes a single, self-contained page:
+
+```bash
+lootmap scan --format html          # writes lootmap-report.html
+```
+
+The page has a loot map of every affected file, each finding with its masked preview and
+next step, and the commands to fix it. It loads nothing from the internet (a strict
+Content-Security-Policy blocks it) and contains masked values only, so you can hand it to
+your security team. [See an example](https://lootmap-dev.github.io/lootmap/report-example.html).
+
+<img src="docs/report.png" alt="lootmap HTML report showing the score, the loot map and the first findings" width="760">
 
 ## Use it in scripts and CI
 

@@ -33,9 +33,12 @@ func newScanCmd(o Options) *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			switch format {
-			case "pretty", "json", "markdown":
+			case "pretty", "json", "markdown", "html":
 			default:
-				return fmt.Errorf("unsupported --format %q (use pretty, json, or markdown)", format)
+				return fmt.Errorf("unsupported --format %q (use pretty, json, markdown, or html)", format)
+			}
+			if format == "html" && outputPath == "" {
+				outputPath = "lootmap-report.html"
 			}
 
 			suite, err := detect.Default()
@@ -72,6 +75,8 @@ func newScanCmd(o Options) *cobra.Command {
 				err = report.WriteJSON(&buf, res)
 			case "markdown":
 				err = report.WriteMarkdown(&buf, res)
+			case "html":
+				err = report.WriteHTML(&buf, res)
 			default:
 				err = report.WritePretty(&buf, res, report.PrettyOptions{
 					NoColor:     noColor,
@@ -87,6 +92,9 @@ func newScanCmd(o Options) *cobra.Command {
 				if err := os.WriteFile(outputPath, buf.Bytes(), 0o600); err != nil {
 					return err
 				}
+				if format == "html" {
+					_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Report written to %s. Open it in your browser; it works offline and shows masked values only.\n", outputPath)
+				}
 			} else if _, err := cmd.OutOrStdout().Write(buf.Bytes()); err != nil {
 				return err
 			}
@@ -98,7 +106,7 @@ func newScanCmd(o Options) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&format, "format", "pretty", "output format (pretty|json|markdown)")
+	cmd.Flags().StringVar(&format, "format", "pretty", "output format (pretty|json|markdown|html)")
 	cmd.Flags().StringVar(&probeFilter, "probe", "", "comma-separated probe IDs to run")
 	cmd.Flags().StringVar(&rootsFlag, "roots", "", "comma-separated development roots to scan (e.g. ~/code,~/work)")
 	cmd.Flags().StringVar(&outputPath, "output", "", "write report to file instead of stdout")
