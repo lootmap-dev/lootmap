@@ -9,6 +9,7 @@ Usage:
 
 Available Commands:
   doctor      Show the environment and which probes would run
+  explain     Explain a finding and how to remediate or rotate it
   help        Help about any command
   scan        Scan this computer for exposed credentials and build a loot map
 

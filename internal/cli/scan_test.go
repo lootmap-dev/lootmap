@@ -140,3 +140,33 @@ func TestAllFakeSecretsNeverLeakToStdoutStderrOrJSON(t *testing.T) {
 		t.Fatalf("LEAK DETECTED: absolute home directory %q appeared in CLI output", e.Home())
 	}
 }
+
+func TestExplainByIDAndRotateFlag(t *testing.T) {
+	pat := testutil.FakeSecret(601, "github-pat-classic")
+	reg := probes.NewRegistry()
+	if err := reg.Register(emittingProbe{
+		id: "git",
+		chunks: []probes.Chunk{
+			{Probe: "git", Path: "~/.git-credentials", Line: 1, Text: pat},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	e := fake(t, "linux", "clean")
+
+	rotOut, _, err := run(t, e, reg, "explain", "--rotate")
+	if err != nil {
+		t.Fatalf("explain --rotate: %v", err)
+	}
+	if !strings.Contains(rotOut, "https://github.com/settings/tokens") || strings.Contains(rotOut, pat) {
+		t.Fatalf("unexpected explain --rotate output:\n%s", rotOut)
+	}
+
+	kindOut, _, err := run(t, e, reg, "explain", "github-pat-classic")
+	if err != nil {
+		t.Fatalf("explain github-pat-classic: %v", err)
+	}
+	if !strings.Contains(kindOut, "GitHub") || strings.Contains(kindOut, pat) {
+		t.Fatalf("unexpected explain output:\n%s", kindOut)
+	}
+}

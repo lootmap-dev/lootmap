@@ -1,0 +1,204 @@
+entries:
+  - kind: github-pat-classic
+    title: "GitHub"
+    short: "classic PAT · repo write"
+    impact: "Write access to your GitHub repositories and packages"
+    severity: critical
+    fixes: ["redact-transcripts", "git-credential-helper"]
+    rotate: "https://github.com/settings/tokens"
+    steps:
+      - "Open https://github.com/settings/tokens and revoke the exposed classic Personal Access Token."
+      - "Create a fine-grained token limited to the needed repositories and permissions."
+      - "Run 'lootmap fix' to switch git credential.helper to the OS keychain and redact AI transcripts."
+
+  - kind: github-pat-fine
+    title: "GitHub"
+    short: "fine-grained PAT"
+    impact: "Scoped access to your GitHub account and repositories"
+    severity: critical
+    fixes: ["redact-transcripts", "git-credential-helper"]
+    rotate: "https://github.com/settings/tokens"
+    steps:
+      - "Open https://github.com/settings/tokens?type=beta and revoke the exposed fine-grained PAT."
+      - "Run 'lootmap fix' to redact AI transcripts and tighten config file permissions."
+
+  - kind: github-oauth
+    title: "GitHub"
+    short: "OAuth token"
+    impact: "OAuth access to your GitHub account"
+    severity: critical
+    fixes: ["redact-transcripts", "git-credential-helper"]
+    rotate: "https://github.com/settings/applications"
+    steps:
+      - "Run 'gh auth logout' or revoke the OAuth application in https://github.com/settings/applications."
+      - "Re-authenticate with 'gh auth login' so tokens live in the OS keychain."
+
+  - kind: aws-access-key-id
+    title: "AWS account"
+    short: "long-lived access key · no expiry"
+    impact: "Long-lived access to your AWS account"
+    severity: critical
+    fixes: ["redact-transcripts", "file-permissions-600"]
+    rotate: "https://console.aws.amazon.com/iam/home#/security_credentials"
+    steps:
+      - "Deactivate and delete the IAM access key in the AWS IAM console."
+      - "Migrate local CLI usage to 'aws configure sso' (short-lived SSO credentials)."
+
+  - kind: npm-token
+    title: "npm"
+    short: "publish token · publishes packages"
+    impact: "Publish new versions of your npm packages"
+    severity: critical
+    fixes: ["redact-transcripts", "file-permissions-600"]
+    rotate: "https://www.npmjs.com/settings/~/tokens"
+    steps:
+      - "Revoke the exposed token at https://www.npmjs.com/settings/~/tokens."
+      - "Replace long-lived ~/.npmrc tokens with granular tokens + 2FA or OIDC provenance."
+
+  - kind: pypi-token
+    title: "PyPI"
+    short: "API token · publishes packages"
+    impact: "Publish new versions of your PyPI packages"
+    severity: critical
+    fixes: ["redact-transcripts", "file-permissions-600"]
+    rotate: "https://pypi.org/manage/account/token/"
+    steps:
+      - "Revoke the PyPI API token at https://pypi.org/manage/account/token/."
+      - "Prefer Trusted Publishers (OIDC) over storing tokens in ~/.pypirc."
+
+  - kind: openai-api-key
+    title: "OpenAI"
+    short: "API key"
+    impact: "Spend your OpenAI API quota and read stored files/assistants"
+    severity: high
+    fixes: ["redact-transcripts", "redact-shell-history"]
+    rotate: "https://platform.openai.com/api-keys"
+    steps:
+      - "Revoke the API key at https://platform.openai.com/api-keys."
+      - "Run 'lootmap fix' to redact AI transcripts and shell history."
+
+  - kind: anthropic-api-key
+    title: "Anthropic"
+    short: "API key"
+    impact: "Spend your Anthropic API quota"
+    severity: high
+    fixes: ["redact-transcripts", "redact-shell-history"]
+    rotate: "https://console.anthropic.com/settings/keys"
+    steps:
+      - "Revoke the key at https://console.anthropic.com/settings/keys."
+      - "Move shell RC exports into a password manager or keychain reference."
+
+  - kind: stripe-live-key
+    title: "Stripe"
+    short: "live secret key · full billing"
+    impact: "Full live access to your Stripe payments and customer data"
+    severity: critical
+    fixes: ["redact-transcripts"]
+    rotate: "https://dashboard.stripe.com/apikeys"
+    steps:
+      - "Roll the live secret key immediately at https://dashboard.stripe.com/apikeys."
+      - "Use restricted keys and test keys (sk_test_) on developer laptops."
+
+  - kind: slack-token
+    title: "Slack"
+    short: "workspace token"
+    impact: "Read and post messages in your Slack workspace"
+    severity: high
+    fixes: ["redact-transcripts"]
+    rotate: "https://api.slack.com/apps"
+    steps:
+      - "Regenerate or revoke the Slack token in https://api.slack.com/apps."
+
+  - kind: gcp-api-key
+    title: "Google Cloud"
+    short: "API key"
+    impact: "Use your Google Cloud APIs and quota"
+    severity: high
+    fixes: ["redact-transcripts"]
+    rotate: "https://console.cloud.google.com/apis/credentials"
+    steps:
+      - "Regenerate or restrict the key at https://console.cloud.google.com/apis/credentials."
+
+  - kind: private-key-pem
+    title: "Private key"
+    short: "PEM/OpenSSH private key"
+    impact: "Authenticate as you to SSH servers or sign artifacts"
+    severity: high
+    fixes: ["ssh-permissions"]
+    steps:
+      - "If this is a service account JSON key, delete it in IAM and use workload identity."
+      - "If this is an SSH key, add a passphrase with 'ssh-keygen -p -f ~/.ssh/<key>'."
+
+  - kind: database-url
+    title: "Database"
+    short: "connection URI · with password"
+    impact: "Direct read/write access to a database with embedded credentials"
+    severity: critical
+    fixes: ["redact-transcripts"]
+    steps:
+      - "Rotate the database user password on the database server."
+      - "Avoid keeping production connection strings in local .env files."
+
+  - kind: git-credential-helper-store
+    title: "Git"
+    short: "credential.helper = store"
+    impact: "Git credentials are stored in plaintext on disk"
+    severity: critical
+    fixes: ["git-credential-helper"]
+    steps:
+      - "Run 'lootmap fix' to switch credential.helper to osxkeychain / libsecret / manager."
+
+  - kind: npm-ignore-scripts-disabled
+    title: "npm config"
+    short: "ignore-scripts=false"
+    impact: "Malicious npm lifecycle scripts (preinstall/postinstall) can run automatically"
+    severity: high
+    fixes: ["npm-ignore-scripts"]
+    steps:
+      - "Run 'lootmap fix' to set ignore-scripts=true in ~/.npmrc."
+
+  - kind: ssh-key-unencrypted
+    title: "SSH"
+    short: "passphraseless key"
+    impact: "Passphraseless SSH private key can be used immediately if stolen"
+    severity: high
+    fixes: ["ssh-permissions"]
+    steps:
+      - "Add a passphrase in place: ssh-keygen -p -f ~/.ssh/id_ed25519"
+
+  - kind: ssh-forward-agent
+    title: "SSH config"
+    short: "ForwardAgent yes"
+    impact: "SSH agent forwarding exposes local keys to compromised remote hosts"
+    severity: high
+    fixes: ["ssh-disable-forward-agent"]
+    steps:
+      - "Run 'lootmap fix' to set ForwardAgent no in ~/.ssh/config."
+
+  - kind: docker-plaintext-auth
+    title: "Docker"
+    short: "base64 auth · no credsStore"
+    impact: "Docker registry credentials are stored as plaintext base64 without credsStore"
+    severity: high
+    fixes: ["file-permissions-600"]
+    steps:
+      - "Configure a native credential helper (osxkeychain, secretservice, wincred) in ~/.docker/config.json."
+
+  - kind: terraform-cloud-token
+    title: "Terraform Cloud"
+    short: "API token · state read"
+    impact: "Read Terraform state (often containing cloud/DB secrets) and trigger runs"
+    severity: medium
+    fixes: ["file-permissions-600"]
+    rotate: "https://app.terraform.io/app/settings/tokens"
+    steps:
+      - "Revoke the token at https://app.terraform.io/app/settings/tokens."
+
+  - kind: malicious-package
+    title: "Malicious package"
+    short: "OSV MAL- advisory match"
+    impact: "Known malicious package version present in lockfile or cache"
+    severity: critical
+    steps:
+      - "Do NOT run npm/pnpm/yarn install or build in the affected project."
+      - "Remove the package, wipe node_modules and package cache, and rotate all credentials on this machine."
