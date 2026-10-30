@@ -1,0 +1,7 @@
+/dist/
+/dist-ci/
+/lootmap
+/lootmap.exe
+*.test
+*.out
+coverage.*

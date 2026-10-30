@@ -1,0 +1,9 @@
+doctor reports the operating system, the home directory (shortened)
+and every registered probe with whether it is available here.
+It reads nothing but tool locations and never uses the network.
+
+Usage:
+  lootmap doctor [flags]
+
+Flags:
+  -h, --help   help for doctor

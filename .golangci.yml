@@ -1,0 +1,52 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - depguard
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - gosec
+    - bodyclose
+    - errorlint
+  settings:
+    depguard:
+      rules:
+        # SPEC.md: net/http may only be imported by internal/osv.
+        # internal/archtest enforces the same rule (plus "net" itself) in go test.
+        network:
+          files:
+            - "$all"
+            - "!**/internal/osv/**"
+          deny:
+            - pkg: net/http
+              desc: "network access is allowed only in internal/osv (SPEC.md)"
+            - pkg: crypto/tls
+              desc: "network access is allowed only in internal/osv (SPEC.md)"
+        exec:
+          files:
+            - "$all"
+            - "!**/internal/env/**"
+          deny:
+            - pkg: os/exec
+              desc: "lootmap never runs external programs; LookPath lives in internal/env"
+  exclusions:
+    rules:
+      # Golden helpers write fixture files with normal permissions.
+      - path: internal/testutil/
+        linters: [gosec]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/lootmap-dev/lootmap
