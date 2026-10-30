@@ -68,7 +68,7 @@ func (SSHProbe) Scan(_ context.Context, e env.Env, emit Emitter) error {
 						Impact:      "SSH private key has overly permissive file mode",
 						Severity:    "high",
 						Fingerprint: "config:ssh-key-permissions:" + shortPath,
-						Preview:     info.Mode().Perm().String(),
+						Preview:     "readable by group/other",
 						Location:    Location{Probe: "ssh", Path: shortPath, Line: 1},
 						Fixes:       []string{"ssh-permissions"},
 					})

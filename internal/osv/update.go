@@ -3,11 +3,16 @@ package osv
 import (
 	"context"
 	"crypto/ed25519"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 )
+
+// ErrUpdateNotConfigured is returned by DownloadAndUpdate when this build has no
+// real release signing key yet, so a downloaded bundle could not be trusted.
+var ErrUpdateNotConfigured = errors.New("update-db is not available in this build yet: no release signing key is configured; the built-in database is used")
 
 // DefaultBundleURL is the canonical URL for the signed OSV MAL- database.
 const DefaultBundleURL = "https://releases.lootmap.dev/osv/maldb.json"
@@ -33,6 +38,9 @@ func DownloadAndUpdate(ctx context.Context, opts UpdateOptions) (*DB, error) {
 	}
 	pub := opts.PublicKey
 	if len(pub) == 0 {
+		if DefaultPublicKeyHex == rfc8032TestKeyHex {
+			return nil, ErrUpdateNotConfigured
+		}
 		var err error
 		pub, err = DecodePublicKeyHex(DefaultPublicKeyHex)
 		if err != nil {

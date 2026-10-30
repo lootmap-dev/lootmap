@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"errors"
 	"io"
 	"net/http"
 	"testing"
@@ -133,5 +134,15 @@ func TestBuildVerifyAndDownloadSignedBundle(t *testing.T) {
 	}
 	if _, ok := db.Lookup("bad-pkg", "1.0.0"); !ok {
 		t.Fatal("expected updated DB to contain bad-pkg@1.0.0")
+	}
+}
+
+func TestUpdateRefusesPublishedTestKey(t *testing.T) {
+	if osv.DefaultPublicKeyHex != "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a" {
+		t.Skip("a real release key is configured")
+	}
+	_, err := osv.DownloadAndUpdate(context.Background(), osv.UpdateOptions{Home: t.TempDir()})
+	if !errors.Is(err, osv.ErrUpdateNotConfigured) {
+		t.Fatalf("want ErrUpdateNotConfigured, got %v", err)
 	}
 }

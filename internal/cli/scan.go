@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -75,6 +76,7 @@ func newScanCmd(o Options) *cobra.Command {
 				err = report.WritePretty(&buf, res, report.PrettyOptions{
 					NoColor:     noColor,
 					ProbesCount: len(o.Probes.All()),
+					Width:       terminalWidth(o.Env.Getenv("COLUMNS")),
 				})
 			}
 			if err != nil {
@@ -133,4 +135,14 @@ func sevLevel(s string) int {
 	default:
 		return 0
 	}
+}
+
+// terminalWidth parses $COLUMNS; anything unparsable means the 80-column
+// default.
+func terminalWidth(columns string) int {
+	n, err := strconv.Atoi(strings.TrimSpace(columns))
+	if err != nil {
+		return 80
+	}
+	return n
 }

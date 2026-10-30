@@ -198,7 +198,7 @@ func (r RedactFixer) Plan(e env.Env, findings []probes.Finding, opts Options) (P
 			FixerID:     r.id,
 			RelPath:     rel,
 			ShortPath:   "~/" + rel,
-			Description: fmt.Sprintf("redact %d secret(s) -> [REDACTED:<kind>]", count),
+			Description: redactDescription(count),
 			NewContent:  redacted,
 			Chmod600:    true,
 		})
@@ -234,6 +234,9 @@ func compileRedactionRegexes() ([]redactRule, error) {
 		{"stripe-live-key", `\b(?:sk|rk)_live_[A-Za-z0-9]{24,}\b`},
 		{"slack-token", `\bxox[baprs]-[0-9]{10,13}-[0-9]{10,13}-[A-Za-z0-9]{24,}\b`},
 		{"gcp-api-key", `\bAIza[0-9A-Za-z\-_]{35}\b`},
+		// Connection URIs with an embedded password. The character classes stop
+		// at quotes and backslashes so JSON-escaped transcripts stay valid.
+		{"database-url", `\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|rediss?|amqps?)://[^/\s:@"\\]+:[^/\s@"\\]+@[^/\s"'\\]+(?:/[^\s"'\\]*)?`},
 	}
 	out := make([]redactRule, 0, len(specs))
 	for _, sp := range specs {
@@ -383,7 +386,7 @@ func (SSHDisableForwardAgentFixer) Plan(e env.Env, findings []probes.Finding, _ 
 			FixerID:     "ssh-disable-forward-agent",
 			RelPath:     rel,
 			ShortPath:   "~/" + rel,
-			Description: "set ForwardAgent no in ~/.ssh/config",
+			Description: "set ForwardAgent no",
 			NewContent:  []byte(updated),
 			Chmod600:    true,
 		})
@@ -431,4 +434,11 @@ func (p PermissionsFixer) Plan(e env.Env, findings []probes.Finding, _ Options) 
 		})
 	}
 	return plan, nil
+}
+
+func redactDescription(n int) string {
+	if n == 1 {
+		return "redact 1 secret"
+	}
+	return fmt.Sprintf("redact %d secrets", n)
 }

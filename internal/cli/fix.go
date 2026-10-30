@@ -52,10 +52,17 @@ func newFixCmd(o Options) *cobra.Command {
 				return nil
 			}
 
-			_, _ = fmt.Fprintf(out, "Planned changes (%d):\n", len(plan.Changes))
+			_, _ = fmt.Fprintf(out, "Planned changes (%d):\n\n", len(plan.Changes))
+			pathW := 0
 			for _, ch := range plan.Changes {
-				_, _ = fmt.Fprintf(out, "  - [%s] %s: %s\n", ch.FixerID, ch.ShortPath, ch.Description)
+				if n := len([]rune(ch.ShortPath)); n > pathW {
+					pathW = n
+				}
 			}
+			for _, ch := range plan.Changes {
+				_, _ = fmt.Fprintf(out, "  • %-*s  %s\n", pathW, ch.ShortPath, ch.Description)
+			}
+			_, _ = fmt.Fprintln(out)
 
 			if dryRun {
 				_, _ = fmt.Fprintln(out, "Dry run complete; no files were modified.")
@@ -72,8 +79,12 @@ func newFixCmd(o Options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			_, _ = fmt.Fprintf(out, "Backup saved: ~/.lootmap/backups/%s (unmasked backups auto-delete after 7 days).\n", manifest.ID)
-			_, _ = fmt.Fprintf(out, "Applied %d fix(es). Run 'lootmap undo %s' to revert.\n", len(plan.Changes), manifest.ID)
+			word := "fixes"
+			if len(plan.Changes) == 1 {
+				word = "fix"
+			}
+			_, _ = fmt.Fprintf(out, "Applied %d %s. Originals backed up to ~/.lootmap/backups/%s\n", len(plan.Changes), word, manifest.ID)
+			_, _ = fmt.Fprintln(out, "Backups are deleted after 7 days. Run 'lootmap undo' to revert.")
 			return nil
 		},
 	}

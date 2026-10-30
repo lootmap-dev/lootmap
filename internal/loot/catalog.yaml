@@ -157,6 +157,15 @@ entries:
     steps:
       - "Run 'lootmap fix' to set ignore-scripts=true in ~/.npmrc."
 
+  - kind: ssh-key-permissions
+    title: "SSH"
+    short: "key readable by other users"
+    impact: "Other local users and processes can read your SSH private key"
+    severity: high
+    fixes: ["ssh-permissions"]
+    steps:
+      - "Run 'lootmap fix' to set the key to owner-only (chmod 600)."
+
   - kind: ssh-key-unencrypted
     title: "SSH"
     short: "passphraseless key"

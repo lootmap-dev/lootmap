@@ -214,7 +214,7 @@
       "impact": "SSH private key has overly permissive file mode",
       "severity": "high",
       "fingerprint": "config:ssh-key-permissions:~/.ssh/id_ed25519",
-      "preview": "-rw-rw-rw-",
+      "preview": "readable by group/other",
       "locations": [
         {
           "probe": "ssh",

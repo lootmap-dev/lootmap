@@ -3,6 +3,7 @@ package probes_test
 import (
 	"bytes"
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -69,6 +70,17 @@ func TestClassicProbesGolden(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			root, secrets := testutil.MaterializeHome(t, tc.home)
+			// Fixtures are materialized with mode 0600. Make the SSH key
+			// group/world-readable so the permission check fires the same way
+			// on every host OS (Windows always reports 0666).
+			if tc.goos != "windows" {
+				key := filepath.Join(root, ".ssh", "id_ed25519")
+				if _, statErr := os.Stat(key); statErr == nil {
+					if err := os.Chmod(key, 0o644); err != nil { // #nosec G302 -- intentional loose permissions for test
+						t.Fatal(err)
+					}
+				}
+			}
 			e, err := env.NewFake(tc.goos, root)
 			if err != nil {
 				t.Fatal(err)

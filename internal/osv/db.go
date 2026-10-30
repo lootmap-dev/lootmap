@@ -24,7 +24,16 @@ var embeddedDBBytes []byte
 
 // DefaultPublicKeyHex is the hex-encoded Ed25519 public key used to verify
 // downloaded OSV MAL- database bundles.
+//
+// RELEASE BLOCKER: this is still the public RFC 8032 test-vector key, whose
+// private half is published in the RFC. update-db refuses to use it (see
+// ErrUpdateNotConfigured). Generate a real release key pair and replace this
+// value before enabling update-db.
 const DefaultPublicKeyHex = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+
+// rfc8032TestKeyHex is the RFC 8032 section 7.1 TEST 1 public key. Anyone can
+// sign with its private key, so it must never be trusted for real updates.
+const rfc8032TestKeyHex = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
 
 // Advisory represents one OSV MAL- entry.
 type Advisory struct {

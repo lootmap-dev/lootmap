@@ -1,0 +1,33 @@
+# Demo home directory for the README recording.
+# Every {{PLACEHOLDER}} is replaced by docs/demo-src/gen with the same
+# deterministic FAKE secrets the test suite uses. Nothing here is real.
+# Format: "-- relative/path --" starts a new file.
+-- .gitconfig --
+[user]
+	name = Demo Dev
+[credential]
+	helper = store
+-- .npmrc --
+registry=https://registry.npmjs.org/
+-- .zsh_history --
+cd ~/code/acme-web
+export GITHUB_TOKEN={{GITHUB_PAT_1}}
+gh pr list
+npm run dev
+-- .aws/credentials --
+[default]
+aws_access_key_id = {{AWS_KEY_ID_1}}
+aws_secret_access_key = {{AWS_SECRET_1}}
+region = eu-central-1
+-- .claude/projects/acme-web/9f2c1e.jsonl --
+{"type":"user","message":{"role":"user","content":"payments are failing in prod, can you check?"}}
+{"type":"tool_result","content":"DATABASE_URL={{DB_URL_1}}\nSTRIPE_SECRET_KEY={{STRIPE_KEY_1}}\nSLACK_BOT_TOKEN={{SLACK_TOKEN_1}}"}
+{"type":"assistant","message":{"role":"assistant","content":"The Stripe key looks valid; the issue is the webhook secret."}}
+-- .codex/sessions/2026-10-28.jsonl --
+{"role":"user","content":"use this key for the eval script: {{OPENAI_KEY_1}}"}
+{"role":"tool","content":"$ cat .env.local\nANTHROPIC_API_KEY={{ANTHROPIC_KEY_1}}"}
+-- .ssh/config --
+Host *
+  ForwardAgent yes
+-- .ssh/id_ed25519 --
+{{PRIVATE_KEY_1}}
