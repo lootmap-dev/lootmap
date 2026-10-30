@@ -1,0 +1,101 @@
+{
+  "tool": "lootmap",
+  "version": "0.1.0",
+  "host": {
+    "os": "linux"
+  },
+  "score": 64,
+  "loot": [
+    {
+      "id": "L-d3b9d50d",
+      "kind": "database-url",
+      "impact": "Direct read/write access to a database with embedded credentials",
+      "severity": "critical",
+      "fingerprint": "sha256:d3b9d50de35925188ca31f878c9bfb2c7f9203d0bf535578d2275939847eed38",
+      "preview": "postgres••••••5432",
+      "locations": [
+        {
+          "probe": "dotenv",
+          "path": "~/code/billing-service/.env.production",
+          "line": 1
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ]
+    },
+    {
+      "id": "L-6e36f56b",
+      "kind": "github-pat-fine",
+      "impact": "Scoped access to your GitHub account and repositories",
+      "severity": "critical",
+      "fingerprint": "sha256:6e36f56b70afe317346c35a9cfefb88bcf3f3e5e2162210165f2236bfa777553",
+      "preview": "github_pat_••••••6p6P",
+      "locations": [
+        {
+          "probe": "containers",
+          "path": "~/.kube/config",
+          "line": 6
+        }
+      ],
+      "fixes": [
+        "redact-transcripts",
+        "git-credential-helper"
+      ],
+      "rotate": "https://github.com/settings/tokens"
+    },
+    {
+      "id": "L-797c962d",
+      "kind": "stripe-live-key",
+      "impact": "Full live access to your Stripe payments and customer data",
+      "severity": "critical",
+      "fingerprint": "sha256:797c962d35c50cf08836c5e4c85f88b8d6f9842e40afd124c5283fa8b4188da7",
+      "preview": "sk_live_••••••sFRq",
+      "locations": [
+        {
+          "probe": "dotenv",
+          "path": "~/code/billing-service/.env.production",
+          "line": 2
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ],
+      "rotate": "https://dashboard.stripe.com/apikeys"
+    },
+    {
+      "id": "L-0cd963ee",
+      "kind": "docker-plaintext-auth",
+      "impact": "Docker registry credentials are stored as plaintext base64 without credsStore",
+      "severity": "high",
+      "fingerprint": "config:docker-plaintext-auth:~/.docker/config.json:https://index.docker.io/v1/",
+      "preview": "https://index.docker.io/v1/ (base64 auth)",
+      "locations": [
+        {
+          "probe": "containers",
+          "path": "~/.docker/config.json",
+          "line": 1
+        }
+      ],
+      "fixes": [
+        "file-permissions-600"
+      ]
+    },
+    {
+      "id": "L-0cb63323",
+      "kind": "terraform-cloud-token",
+      "impact": "Read Terraform state (often containing cloud/DB secrets) and trigger runs on app.terraform.io",
+      "severity": "medium",
+      "fingerprint": "sha256:0cb6332370dd224a6158c1cb61d90505d870371bb7b0385bd60032f1f87ec3c7",
+      "preview": "atlasv••••••cdef",
+      "locations": [
+        {
+          "probe": "iac",
+          "path": "~/.terraform.d/credentials.tfrc.json",
+          "line": 1
+        }
+      ],
+      "rotate": "https://app.terraform.io/app/settings/tokens"
+    }
+  ]
+}

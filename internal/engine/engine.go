@@ -20,6 +20,7 @@ import (
 type Options struct {
 	Version    string
 	OnlyProbes []string // optional filter of probe IDs
+	Roots      []string // optional custom development roots for dotenv/packages
 }
 
 // HostInfo describes the scanned host without exposing the hostname or username.
@@ -105,6 +106,9 @@ func (c *collector) EmitFinding(f probes.Finding) {
 // Run executes all selected and available probes concurrently, deduplicates
 // findings by fingerprint, assigns collision-free IDs, and calculates the score.
 func Run(ctx context.Context, e env.Env, reg *probes.Registry, suite *detect.Suite, opts Options) (Result, error) {
+	if len(opts.Roots) > 0 {
+		e = rootsEnv{Env: e, roots: strings.Join(opts.Roots, ",")}
+	}
 	selected := selectProbes(reg.All(), e, opts.OnlyProbes)
 
 	col := &collector{e: e, suite: suite}
@@ -140,6 +144,18 @@ func Run(ctx context.Context, e env.Env, reg *probes.Registry, suite *detect.Sui
 		Score:   CalculateScore(loot),
 		Loot:    loot,
 	}, nil
+}
+
+type rootsEnv struct {
+	env.Env
+	roots string
+}
+
+func (r rootsEnv) Getenv(key string) string {
+	if key == "LOOTMAP_ROOTS" && r.roots != "" {
+		return r.roots
+	}
+	return r.Env.Getenv(key)
 }
 
 func selectProbes(all []probes.Probe, e env.Env, only []string) []probes.Probe {

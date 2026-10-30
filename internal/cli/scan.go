@@ -14,6 +14,7 @@ import (
 func newScanCmd(o Options) *cobra.Command {
 	var format string
 	var probeFilter string
+	var rootsFlag string
 
 	cmd := &cobra.Command{
 		Use:   "scan",
@@ -35,10 +36,15 @@ func newScanCmd(o Options) *cobra.Command {
 			if probeFilter != "" {
 				only = strings.Split(probeFilter, ",")
 			}
+			var roots []string
+			if rootsFlag != "" {
+				roots = strings.Split(rootsFlag, ",")
+			}
 
 			res, err := engine.Run(cmd.Context(), o.Env, o.Probes, suite, engine.Options{
 				Version:    o.Version,
 				OnlyProbes: only,
+				Roots:      roots,
 			})
 			if err != nil {
 				return err
@@ -52,5 +58,6 @@ func newScanCmd(o Options) *cobra.Command {
 
 	cmd.Flags().StringVar(&format, "format", "json", "output format (json|pretty)")
 	cmd.Flags().StringVar(&probeFilter, "probe", "", "comma-separated probe IDs to run")
+	cmd.Flags().StringVar(&rootsFlag, "roots", "", "comma-separated development roots to scan (e.g. ~/code,~/work)")
 	return cmd
 }

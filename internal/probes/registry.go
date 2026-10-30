@@ -142,6 +142,9 @@ var defaultRegistry = func() *Registry {
 	for _, p := range AIProbes() {
 		_ = r.Register(p)
 	}
+	for _, p := range RemainingProbes() {
+		_ = r.Register(p)
+	}
 	return r
 }()
 
@@ -163,6 +166,15 @@ func AIProbes() []Probe {
 	return []Probe{
 		AITranscriptsProbe{},
 		AIConfigProbe{},
+	}
+}
+
+// RemainingProbes returns the Phase 4 probes (dotenv, containers, iac).
+func RemainingProbes() []Probe {
+	return []Probe{
+		DotenvProbe{},
+		ContainersProbe{},
+		IaCProbe{},
 	}
 }
 
