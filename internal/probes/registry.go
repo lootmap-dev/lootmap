@@ -139,6 +139,9 @@ var defaultRegistry = func() *Registry {
 	for _, p := range ClassicProbes() {
 		_ = r.Register(p)
 	}
+	for _, p := range AIProbes() {
+		_ = r.Register(p)
+	}
 	return r
 }()
 
@@ -152,6 +155,14 @@ func ClassicProbes() []Probe {
 		SSHProbe{},
 		ShellHistoryProbe{},
 		ShellRCProbe{},
+	}
+}
+
+// AIProbes returns the Phase 3 AI probes (ai-transcripts, ai-config).
+func AIProbes() []Probe {
+	return []Probe{
+		AITranscriptsProbe{},
+		AIConfigProbe{},
 	}
 }
 

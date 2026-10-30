@@ -1,0 +1,2 @@
+{"type":"user","message":"Here is my Stripe live key {{STRIPE_KEY_1}} for debugging"}
+{"type":"assistant","message":"I see the key, let's put it in env"}

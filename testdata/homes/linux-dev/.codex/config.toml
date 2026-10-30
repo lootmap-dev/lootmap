@@ -1,0 +1,2 @@
+model = "gpt-5"
+api_key = "{{OPENAI_KEY_1}}"

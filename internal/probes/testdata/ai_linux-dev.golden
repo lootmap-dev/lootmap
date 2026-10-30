@@ -1,0 +1,131 @@
+{
+  "tool": "lootmap",
+  "version": "0.1.0",
+  "host": {
+    "os": "linux"
+  },
+  "score": 58,
+  "loot": [
+    {
+      "id": "L-712d1ffa",
+      "kind": "github-oauth",
+      "impact": "OAuth access to your GitHub account",
+      "severity": "critical",
+      "fingerprint": "sha256:712d1ffadbbe38e96110cf799cd44b0ee7586acd596f134284c78276452bbf93",
+      "preview": "gho_••••••h7Sm",
+      "locations": [
+        {
+          "probe": "ai-transcripts",
+          "path": "~/.config/Cursor/User/globalStorage/state.vscdb",
+          "line": 1
+        }
+      ],
+      "fixes": [
+        "redact-transcripts",
+        "git-credential-helper"
+      ],
+      "rotate": "https://github.com/settings/applications"
+    },
+    {
+      "id": "L-6e36f56b",
+      "kind": "github-pat-fine",
+      "impact": "Scoped access to your GitHub account and repositories",
+      "severity": "critical",
+      "fingerprint": "sha256:6e36f56b70afe317346c35a9cfefb88bcf3f3e5e2162210165f2236bfa777553",
+      "preview": "github_pat_••••••6p6P",
+      "locations": [
+        {
+          "probe": "ai-config",
+          "path": "~/.cursor/mcp.json",
+          "line": 7
+        }
+      ],
+      "fixes": [
+        "redact-transcripts",
+        "git-credential-helper"
+      ],
+      "rotate": "https://github.com/settings/tokens"
+    },
+    {
+      "id": "L-797c962d",
+      "kind": "stripe-live-key",
+      "impact": "Full live access to your Stripe payments and customer data",
+      "severity": "critical",
+      "fingerprint": "sha256:797c962d35c50cf08836c5e4c85f88b8d6f9842e40afd124c5283fa8b4188da7",
+      "preview": "sk_live_••••••sFRq",
+      "locations": [
+        {
+          "probe": "ai-transcripts",
+          "path": "~/.claude/projects/webapp/session-01.jsonl",
+          "line": 1
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ],
+      "rotate": "https://dashboard.stripe.com/apikeys"
+    },
+    {
+      "id": "L-5cdbcdd9",
+      "kind": "gcp-api-key",
+      "impact": "Use your Google Cloud APIs and quota",
+      "severity": "high",
+      "fingerprint": "sha256:5cdbcdd9adfef1b1f5c84ce3cedd961fcf67c6f567b6180c797b0476debc2118",
+      "preview": "AIza••••••LBIn",
+      "locations": [
+        {
+          "probe": "ai-transcripts",
+          "path": "~/.gemini/tmp/session.json",
+          "line": 1
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ],
+      "rotate": "https://console.cloud.google.com/apis/credentials"
+    },
+    {
+      "id": "L-b0bd9456",
+      "kind": "openai-api-key",
+      "impact": "Spend your OpenAI API quota and read stored files/assistants",
+      "severity": "high",
+      "fingerprint": "sha256:b0bd94560d0c977163b5813c26c0bb18320e19e21e7f732925454ba3e42a959b",
+      "preview": "sk-pro••••••N89a",
+      "locations": [
+        {
+          "probe": "ai-config",
+          "path": "~/.codex/config.toml",
+          "line": 1
+        },
+        {
+          "probe": "ai-config",
+          "path": "~/.codex/config.toml",
+          "line": 2
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ],
+      "rotate": "https://platform.openai.com/api-keys"
+    },
+    {
+      "id": "L-bd733d1a",
+      "kind": "slack-token",
+      "impact": "Read and post messages in your Slack workspace",
+      "severity": "high",
+      "fingerprint": "sha256:bd733d1a35e8b4adcec826f40664844ad596fb8ddc78929d80483a83dcd88355",
+      "preview": "xoxb-••••••UYPV",
+      "locations": [
+        {
+          "probe": "ai-transcripts",
+          "path": "~/.codex/sessions/2026-10-30.jsonl",
+          "line": 1
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ],
+      "rotate": "https://api.slack.com/apps"
+    }
+  ]
+}
