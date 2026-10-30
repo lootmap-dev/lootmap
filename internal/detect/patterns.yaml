@@ -1,0 +1,128 @@
+patterns:
+  - id: github-pat-classic
+    regex: '\b(ghp_[A-Za-z0-9]{36})\b'
+    prefix_len: 4
+    suffix_len: 4
+    min_entropy: 3.0
+    severity: critical
+    impact: "Write access to your GitHub repositories and packages"
+    fixes: ["redact-transcripts", "git-credential-helper"]
+    rotate: "https://github.com/settings/tokens"
+
+  - id: github-pat-fine
+    regex: '\b(github_pat_[A-Za-z0-9]{22}_[A-Za-z0-9]{59})\b'
+    prefix_len: 11
+    suffix_len: 4
+    min_entropy: 3.2
+    severity: critical
+    impact: "Scoped access to your GitHub account and repositories"
+    fixes: ["redact-transcripts", "git-credential-helper"]
+    rotate: "https://github.com/settings/tokens"
+
+  - id: github-oauth
+    regex: '\b(gho_[A-Za-z0-9]{36})\b'
+    prefix_len: 4
+    suffix_len: 4
+    min_entropy: 3.0
+    severity: critical
+    impact: "OAuth access to your GitHub account"
+    fixes: ["redact-transcripts", "git-credential-helper"]
+    rotate: "https://github.com/settings/applications"
+
+  - id: aws-access-key-id
+    regex: '\b((?:AKIA|ASIA)[0-9A-Z]{16})\b'
+    prefix_len: 4
+    suffix_len: 4
+    min_entropy: 2.8
+    severity: critical
+    impact: "Long-lived access to your AWS account"
+    fixes: ["redact-transcripts"]
+    rotate: "https://console.aws.amazon.com/iam/home#/security_credentials"
+
+  - id: npm-token
+    regex: '\b(npm_[A-Za-z0-9]{36})\b'
+    prefix_len: 4
+    suffix_len: 4
+    min_entropy: 3.0
+    severity: critical
+    impact: "Publish new versions of your npm packages"
+    fixes: ["redact-transcripts"]
+    rotate: "https://www.npmjs.com/settings/~/tokens"
+
+  - id: pypi-token
+    regex: '\b(pypi-AgEIcHlwaS5vcmc[A-Za-z0-9\-_]{50,})\b'
+    prefix_len: 5
+    suffix_len: 4
+    min_entropy: 3.2
+    severity: critical
+    impact: "Publish new versions of your PyPI packages"
+    fixes: ["redact-transcripts"]
+    rotate: "https://pypi.org/manage/account/token/"
+
+  - id: openai-api-key
+    regex: '\b(sk-(?:proj-)?[A-Za-z0-9\-_]{32,})\b'
+    prefix_len: 6
+    suffix_len: 4
+    min_entropy: 3.2
+    severity: high
+    impact: "Spend your OpenAI API quota and read stored files/assistants"
+    fixes: ["redact-transcripts"]
+    rotate: "https://platform.openai.com/api-keys"
+
+  - id: anthropic-api-key
+    regex: '\b(sk-ant-api03-[A-Za-z0-9\-_]{32,})\b'
+    prefix_len: 7
+    suffix_len: 4
+    min_entropy: 3.2
+    severity: high
+    impact: "Spend your Anthropic API quota"
+    fixes: ["redact-transcripts"]
+    rotate: "https://console.anthropic.com/settings/keys"
+
+  - id: stripe-live-key
+    regex: '\b((?:sk|rk)_live_[A-Za-z0-9]{24,})\b'
+    prefix_len: 8
+    suffix_len: 4
+    min_entropy: 3.0
+    severity: critical
+    impact: "Full live access to your Stripe payments and customer data"
+    fixes: ["redact-transcripts"]
+    rotate: "https://dashboard.stripe.com/apikeys"
+
+  - id: slack-token
+    regex: '\b(xox[baprs]-[0-9]{10,13}-[0-9]{10,13}-[A-Za-z0-9]{24,})\b'
+    prefix_len: 5
+    suffix_len: 4
+    min_entropy: 3.0
+    severity: high
+    impact: "Read and post messages in your Slack workspace"
+    fixes: ["redact-transcripts"]
+    rotate: "https://api.slack.com/apps"
+
+  - id: gcp-api-key
+    regex: '\b(AIza[0-9A-Za-z\-_]{35})\b'
+    prefix_len: 4
+    suffix_len: 4
+    min_entropy: 3.0
+    severity: high
+    impact: "Use your Google Cloud APIs and quota"
+    fixes: ["redact-transcripts"]
+    rotate: "https://console.cloud.google.com/apis/credentials"
+
+  - id: private-key-pem
+    regex: '-----BEGIN (?:RSA |DSA |EC |OPENSSH |PGP )?PRIVATE KEY-----[\s\S]+?-----END (?:RSA |DSA |EC |OPENSSH |PGP )?PRIVATE KEY-----'
+    prefix_len: 11
+    suffix_len: 4
+    min_entropy: 3.0
+    severity: high
+    impact: "Authenticate as you to SSH servers or sign artifacts"
+    fixes: ["ssh-permissions"]
+
+  - id: database-url
+    regex: '\b((?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|rediss)://[^/\s:@]+:[^/\s@]+@[^/\s"'']+)'
+    prefix_len: 8
+    suffix_len: 4
+    min_entropy: 2.5
+    severity: critical
+    impact: "Direct read/write access to a database with embedded credentials"
+    fixes: ["redact-transcripts"]

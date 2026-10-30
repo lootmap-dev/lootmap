@@ -45,6 +45,7 @@ func NewRootCmd(o Options) *cobra.Command {
 	root.SetErr(o.Stderr)
 
 	root.AddCommand(newDoctorCmd(o))
+	root.AddCommand(newScanCmd(o))
 	return root
 }
 

@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"bytes"
+	"context"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -17,8 +18,9 @@ type stubProbe struct {
 	available bool
 }
 
-func (s stubProbe) ID() string             { return s.id }
-func (s stubProbe) Available(env.Env) bool { return s.available }
+func (s stubProbe) ID() string                                          { return s.id }
+func (s stubProbe) Available(env.Env) bool                              { return s.available }
+func (s stubProbe) Scan(context.Context, env.Env, probes.Emitter) error { return nil }
 
 func run(t *testing.T, e env.Env, reg *probes.Registry, args ...string) (string, string, error) {
 	t.Helper()

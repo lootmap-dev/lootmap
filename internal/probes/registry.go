@@ -1,8 +1,10 @@
-// Package probes holds the probe registry and, from Phase 2 on, the probes
-// themselves.
+// Package probes holds the probe registry, the scan input/output types
+// (Chunk, Finding, Emitter), and from Phase 2 on, the probes themselves.
 package probes
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -11,13 +13,84 @@ import (
 	"github.com/lootmap-dev/lootmap/internal/env"
 )
 
-// Probe knows how to read one place on disk.
+// Chunk is a piece of raw text read by a probe to be scanned by detectors.
 //
-// Phase 0 defines only identity and availability; Scan (with the Emitter
-// interface) is added in Phase 1.
+// Chunk.Text carries raw scan input, so String, GoString, Format, and
+// MarshalJSON always mask Text to prevent accidental logging or serialization.
+type Chunk struct {
+	Probe string
+	Path  string // shortened with ~
+	Line  int
+	Text  string
+}
+
+func (c Chunk) maskedSummary() string {
+	return fmt.Sprintf("Chunk{Probe:%s Path:%s Line:%d Text:[REDACTED]}", c.Probe, c.Path, c.Line)
+}
+
+// String masks Text so a Chunk can never leak raw input to logs.
+func (c Chunk) String() string { return c.maskedSummary() }
+
+// GoString masks Text so %#v never leaks raw input.
+func (c Chunk) GoString() string { return c.maskedSummary() }
+
+// Format implements fmt.Formatter and always masks Text.
+func (c Chunk) Format(f fmt.State, verb rune) {
+	if verb == 'q' {
+		_, _ = fmt.Fprintf(f, "%q", c.maskedSummary())
+		return
+	}
+	_, _ = fmt.Fprint(f, c.maskedSummary())
+}
+
+// MarshalJSON omits raw Text and replaces it with "[REDACTED]".
+func (c Chunk) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Probe string `json:"probe"`
+		Path  string `json:"path"`
+		Line  int    `json:"line"`
+		Text  string `json:"text"`
+	}{
+		Probe: c.Probe,
+		Path:  c.Path,
+		Line:  c.Line,
+		Text:  "[REDACTED]",
+	})
+}
+
+// Location identifies where a finding was observed.
+type Location struct {
+	Probe string `json:"probe"`
+	Path  string `json:"path"` // shortened with ~
+	Line  int    `json:"line,omitempty"`
+}
+
+// Finding represents a single discovered issue at one Location. Probes emit
+// config/permission findings directly via EmitFinding; secret findings are
+// produced by running Detectors over emitted Chunks.
+type Finding struct {
+	Kind        string   `json:"kind"`
+	Impact      string   `json:"impact"`
+	Severity    string   `json:"severity"` // critical | high | medium | low
+	Fingerprint string   `json:"fingerprint"`
+	Preview     string   `json:"preview"`
+	Location    Location `json:"location"`
+	Fixes       []string `json:"fixes,omitempty"`
+	Rotate      string   `json:"rotate,omitempty"`
+}
+
+// Emitter receives Chunks (for secret detection) and direct Findings (for
+// non-secret configuration/permission issues) from a running Probe.
+type Emitter interface {
+	EmitChunk(c Chunk)
+	EmitFinding(f Finding)
+}
+
+// Probe knows how to read one place on disk.
 type Probe interface {
 	ID() string               // e.g. "ai-transcripts"
 	Available(e env.Env) bool // is the tool installed / does the path exist
+	Scan(ctx context.Context, e env.Env, emit Emitter) error
 }
 
 // Registry is a set of probes keyed by ID.

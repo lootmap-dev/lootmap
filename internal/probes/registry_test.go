@@ -1,6 +1,7 @@
 package probes_test
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -13,8 +14,9 @@ type stubProbe struct {
 	available bool
 }
 
-func (s stubProbe) ID() string             { return s.id }
-func (s stubProbe) Available(env.Env) bool { return s.available }
+func (s stubProbe) ID() string                                          { return s.id }
+func (s stubProbe) Available(env.Env) bool                              { return s.available }
+func (s stubProbe) Scan(context.Context, env.Env, probes.Emitter) error { return nil }
 
 func TestRegistry(t *testing.T) {
 	tests := []struct {
