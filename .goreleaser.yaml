@@ -27,10 +27,54 @@ archives:
 checksum:
   name_template: checksums.txt
 
+sboms:
+  - artifacts: archive
+    cmd: syft
+    args: ["$artifact", "--output", "spdx-json=$document"]
+    documents:
+      - "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}.sbom.spdx.json"
+
+signs:
+  - cmd: cosign
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
+    args:
+      - sign-blob
+      - "--yes"
+      - "--output-signature=${signature}"
+      - "--output-certificate=${certificate}"
+      - "${artifact}"
+    artifacts: all
+
+brews:
+  - name: lootmap
+    repository:
+      owner: lootmap-dev
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/lootmap-dev/lootmap"
+    description: "See your laptop the way malware does. Then fix it."
+    license: "Apache-2.0"
+    install: |
+      bin.install "lootmap"
+    test: |
+      system "#{bin}/lootmap", "--version"
+
+scoops:
+  - name: lootmap
+    repository:
+      owner: lootmap-dev
+      name: scoop-bucket
+      branch: main
+      token: "{{ .Env.SCOOP_BUCKET_GITHUB_TOKEN }}"
+    homepage: "https://github.com/lootmap-dev/lootmap"
+    description: "See your laptop the way malware does. Then fix it."
+    license: "Apache-2.0"
+
 snapshot:
   version_template: "{{ incpatch .Version }}-snapshot"
 
 changelog:
   disable: true
-
-# Signing (cosign), SBOM and SLSA provenance are added in Phase 8.

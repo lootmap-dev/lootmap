@@ -10,7 +10,9 @@ import (
 	"go/parser"
 	"go/token"
 	"io/fs"
+	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -137,6 +139,45 @@ func TestRuleHelpers(t *testing.T) {
 	for _, tc := range tests {
 		if got := allowedIn(tc.dir, tc.prefixes); got != tc.want {
 			t.Errorf("allowedIn(%q, %v) = %v, want %v", tc.dir, tc.prefixes, got, tc.want)
+		}
+	}
+}
+
+var usesLineRe = regexp.MustCompile(`^\s*-?\s*uses:\s*([^\s#]+)`)
+var sha40Re = regexp.MustCompile(`^[0-9a-f]{40}$`)
+
+func TestGitHubActionsPinnedToFullSHA(t *testing.T) {
+	wfDir := filepath.Join(testutil.RepoRoot(t), ".github", "workflows")
+	entries, err := os.ReadDir(wfDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ent := range entries {
+		if ent.IsDir() || (!strings.HasSuffix(ent.Name(), ".yml") && !strings.HasSuffix(ent.Name(), ".yaml")) {
+			continue
+		}
+		p := filepath.Join(wfDir, ent.Name())
+		data, err := os.ReadFile(filepath.Clean(p)) // #nosec G304
+		if err != nil {
+			t.Fatal(err)
+		}
+		for idx, line := range strings.Split(string(data), "\n") {
+			m := usesLineRe.FindStringSubmatch(line)
+			if len(m) != 2 {
+				continue
+			}
+			ref := m[1]
+			// slsa-github-generator requires a tag ref (@vX.Y.Z) for provenance verification.
+			if strings.HasPrefix(ref, "slsa-framework/slsa-github-generator/") {
+				if !strings.HasSuffix(ref, "@v2.1.0") {
+					t.Errorf("%s:%d slsa-github-generator must use @v2.1.0 tag, got %q", ent.Name(), idx+1, ref)
+				}
+				continue
+			}
+			at := strings.LastIndexByte(ref, '@')
+			if at < 0 || !sha40Re.MatchString(ref[at+1:]) {
+				t.Errorf("%s:%d action %q is not pinned to a 40-char commit SHA", ent.Name(), idx+1, ref)
+			}
 		}
 	}
 }
