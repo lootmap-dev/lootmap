@@ -1,0 +1,68 @@
+{
+  "tool": "lootmap",
+  "version": "0.1.0",
+  "host": {
+    "os": "darwin"
+  },
+  "score": 70,
+  "loot": [
+    {
+      "id": "L-ff9fccef",
+      "kind": "aws-access-key-id",
+      "impact": "Long-lived access to your AWS account",
+      "severity": "critical",
+      "fingerprint": "sha256:ff9fccef482187e616cc3ba428743741c93bc9a1d3c19bd91955cb3405c198b3",
+      "preview": "AKIA••••••QAZI",
+      "locations": [
+        {
+          "probe": "cloud",
+          "path": "~/.aws/credentials",
+          "line": 2
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ],
+      "rotate": "https://console.aws.amazon.com/iam/home#/security_credentials"
+    },
+    {
+      "id": "L-0d5f2773",
+      "kind": "github-pat-classic",
+      "impact": "Write access to your GitHub repositories and packages",
+      "severity": "critical",
+      "fingerprint": "sha256:0d5f277366cc1f7746543d7bc1a88921acfcae4292af5c1f2574286f0a34fe41",
+      "preview": "ghp_••••••7c3b",
+      "locations": [
+        {
+          "probe": "git",
+          "path": "~/.git-credentials",
+          "line": 1
+        }
+      ],
+      "fixes": [
+        "redact-transcripts",
+        "git-credential-helper"
+      ],
+      "rotate": "https://github.com/settings/tokens"
+    },
+    {
+      "id": "L-4e1f9fc4",
+      "kind": "npm-token",
+      "impact": "Publish new versions of your npm packages",
+      "severity": "critical",
+      "fingerprint": "sha256:4e1f9fc4b6d4ffb60cafb39dedb91d19d5e7bd64142be79aeb2824851a5808ed",
+      "preview": "npm_••••••u8NV",
+      "locations": [
+        {
+          "probe": "npm",
+          "path": "~/.npmrc",
+          "line": 1
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ],
+      "rotate": "https://www.npmjs.com/settings/~/tokens"
+    }
+  ]
+}

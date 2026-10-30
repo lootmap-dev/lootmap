@@ -60,8 +60,8 @@ func TestRegistryRejectsNil(t *testing.T) {
 	}
 }
 
-func TestDefaultRegistryEmptyInPhase0(t *testing.T) {
-	if n := len(probes.Default().All()); n != 0 {
-		t.Fatalf("Phase 0 registers no probes, got %d", n)
+func TestDefaultRegistryContainsProbes(t *testing.T) {
+	if n := len(probes.Default().All()); n < 6 {
+		t.Fatalf("Default() should contain at least the 6 classic probes, got %d", n)
 	}
 }

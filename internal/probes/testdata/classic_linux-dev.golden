@@ -1,0 +1,248 @@
+{
+  "tool": "lootmap",
+  "version": "0.1.0",
+  "host": {
+    "os": "linux"
+  },
+  "score": 22,
+  "loot": [
+    {
+      "id": "L-ff9fccef",
+      "kind": "aws-access-key-id",
+      "impact": "Long-lived access to your AWS account",
+      "severity": "critical",
+      "fingerprint": "sha256:ff9fccef482187e616cc3ba428743741c93bc9a1d3c19bd91955cb3405c198b3",
+      "preview": "AKIA••••••QAZI",
+      "locations": [
+        {
+          "probe": "cloud",
+          "path": "~/.aws/credentials",
+          "line": 2
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ],
+      "rotate": "https://console.aws.amazon.com/iam/home#/security_credentials"
+    },
+    {
+      "id": "L-ec7623da",
+      "kind": "git-credential-helper-store",
+      "impact": "Git credentials are stored in plaintext on disk",
+      "severity": "critical",
+      "fingerprint": "config:git-credential-helper-store:~/.gitconfig",
+      "preview": "helper = store",
+      "locations": [
+        {
+          "probe": "git",
+          "path": "~/.gitconfig",
+          "line": 5
+        }
+      ],
+      "fixes": [
+        "git-credential-helper"
+      ]
+    },
+    {
+      "id": "L-0d5f2773",
+      "kind": "github-pat-classic",
+      "impact": "Write access to your GitHub repositories and packages",
+      "severity": "critical",
+      "fingerprint": "sha256:0d5f277366cc1f7746543d7bc1a88921acfcae4292af5c1f2574286f0a34fe41",
+      "preview": "ghp_••••••7c3b",
+      "locations": [
+        {
+          "probe": "git",
+          "path": "~/.config/gh/hosts.yml",
+          "line": 3
+        },
+        {
+          "probe": "git",
+          "path": "~/.config/git/extra.gitconfig",
+          "line": 2
+        },
+        {
+          "probe": "git",
+          "path": "~/.git-credentials",
+          "line": 1
+        }
+      ],
+      "fixes": [
+        "redact-transcripts",
+        "git-credential-helper"
+      ],
+      "rotate": "https://github.com/settings/tokens"
+    },
+    {
+      "id": "L-4e1f9fc4",
+      "kind": "npm-token",
+      "impact": "Publish new versions of your npm packages",
+      "severity": "critical",
+      "fingerprint": "sha256:4e1f9fc4b6d4ffb60cafb39dedb91d19d5e7bd64142be79aeb2824851a5808ed",
+      "preview": "npm_••••••u8NV",
+      "locations": [
+        {
+          "probe": "npm",
+          "path": "~/.npmrc",
+          "line": 1
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ],
+      "rotate": "https://www.npmjs.com/settings/~/tokens"
+    },
+    {
+      "id": "L-a0e894f8",
+      "kind": "pypi-token",
+      "impact": "Publish new versions of your PyPI packages",
+      "severity": "critical",
+      "fingerprint": "sha256:a0e894f8c44e5f05dabba885e34281139da10b33711c4c22d2085a5681534788",
+      "preview": "pypi-••••••C33e",
+      "locations": [
+        {
+          "probe": "npm",
+          "path": "~/.pypirc",
+          "line": 3
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ],
+      "rotate": "https://pypi.org/manage/account/token/"
+    },
+    {
+      "id": "L-a803a468",
+      "kind": "anthropic-api-key",
+      "impact": "Spend your Anthropic API quota",
+      "severity": "high",
+      "fingerprint": "sha256:a803a4683bba0bb1e59c8fb6440ed136ee36906a9b195cedb1482e4d191ee057",
+      "preview": "sk-ant-••••••DZuE",
+      "locations": [
+        {
+          "probe": "shell-rc",
+          "path": "~/.zshrc",
+          "line": 2
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ],
+      "rotate": "https://console.anthropic.com/settings/keys"
+    },
+    {
+      "id": "L-7b9bd9fb",
+      "kind": "npm-ignore-scripts-disabled",
+      "impact": "Malicious npm lifecycle scripts (preinstall/postinstall) can run automatically",
+      "severity": "high",
+      "fingerprint": "config:npm-ignore-scripts-disabled:~/.npmrc",
+      "preview": "ignore-scripts=false",
+      "locations": [
+        {
+          "probe": "npm",
+          "path": "~/.npmrc",
+          "line": 2
+        }
+      ],
+      "fixes": [
+        "npm-ignore-scripts"
+      ]
+    },
+    {
+      "id": "L-b0bd9456",
+      "kind": "openai-api-key",
+      "impact": "Spend your OpenAI API quota and read stored files/assistants",
+      "severity": "high",
+      "fingerprint": "sha256:b0bd94560d0c977163b5813c26c0bb18320e19e21e7f732925454ba3e42a959b",
+      "preview": "sk-pro••••••N89a",
+      "locations": [
+        {
+          "probe": "shell-history",
+          "path": "~/.zsh_history",
+          "line": 2
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ],
+      "rotate": "https://platform.openai.com/api-keys"
+    },
+    {
+      "id": "L-dbf5611f",
+      "kind": "private-key-pem",
+      "impact": "Authenticate as you to SSH servers or sign artifacts",
+      "severity": "high",
+      "fingerprint": "sha256:dbf5611f9dfbd018bd9c094efe8ddffa2ec7ec64fd1d10f507f321666158d345",
+      "preview": "-----BEGIN ••••••----",
+      "locations": [
+        {
+          "probe": "cloud",
+          "path": "~/.config/gcloud/application_default_credentials.json",
+          "line": 1
+        },
+        {
+          "probe": "ssh",
+          "path": "~/.ssh/id_ed25519",
+          "line": 1
+        }
+      ],
+      "fixes": [
+        "ssh-permissions"
+      ]
+    },
+    {
+      "id": "L-b2d35169",
+      "kind": "ssh-forward-agent",
+      "impact": "SSH agent forwarding exposes local keys to compromised remote hosts",
+      "severity": "high",
+      "fingerprint": "config:ssh-forward-agent:~/.ssh/config",
+      "preview": "ForwardAgent yes",
+      "locations": [
+        {
+          "probe": "ssh",
+          "path": "~/.ssh/config",
+          "line": 2
+        }
+      ],
+      "fixes": [
+        "ssh-disable-forward-agent"
+      ]
+    },
+    {
+      "id": "L-40349170",
+      "kind": "ssh-key-permissions",
+      "impact": "SSH private key has overly permissive file mode",
+      "severity": "high",
+      "fingerprint": "config:ssh-key-permissions:~/.ssh/id_ed25519",
+      "preview": "-rw-rw-rw-",
+      "locations": [
+        {
+          "probe": "ssh",
+          "path": "~/.ssh/id_ed25519",
+          "line": 1
+        }
+      ],
+      "fixes": [
+        "ssh-permissions"
+      ]
+    },
+    {
+      "id": "L-7c156490",
+      "kind": "ssh-key-unencrypted",
+      "impact": "Passphraseless SSH private key can be used immediately if stolen",
+      "severity": "high",
+      "fingerprint": "config:ssh-key-unencrypted:~/.ssh/id_ed25519",
+      "preview": "id_ed25519 (no passphrase)",
+      "locations": [
+        {
+          "probe": "ssh",
+          "path": "~/.ssh/id_ed25519",
+          "line": 1
+        }
+      ],
+      "fixes": [
+        "ssh-permissions"
+      ]
+    }
+  ]
+}

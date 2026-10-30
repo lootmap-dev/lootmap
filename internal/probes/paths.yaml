@@ -1,0 +1,216 @@
+probes:
+  cloud:
+    darwin:
+      - ".aws/credentials"
+      - ".aws/config"
+      - ".config/gcloud/credentials.db"
+      - ".config/gcloud/application_default_credentials.json"
+      - ".config/gcloud/legacy_credentials"
+      - ".azure/accessTokens.json"
+      - ".azure/azureProfile.json"
+    linux:
+      - ".aws/credentials"
+      - ".aws/config"
+      - ".config/gcloud/credentials.db"
+      - ".config/gcloud/application_default_credentials.json"
+      - ".config/gcloud/legacy_credentials"
+      - ".azure/accessTokens.json"
+      - ".azure/azureProfile.json"
+    windows:
+      - ".aws/credentials"
+      - ".aws/config"
+      - "AppData/Roaming/gcloud/credentials.db"
+      - "AppData/Roaming/gcloud/application_default_credentials.json"
+      - ".azure/accessTokens.json"
+      - ".azure/azureProfile.json"
+
+  git:
+    darwin:
+      - ".git-credentials"
+      - ".gitconfig"
+      - ".config/git/config"
+      - ".config/git/credentials"
+      - ".config/gh/hosts.yml"
+    linux:
+      - ".git-credentials"
+      - ".gitconfig"
+      - ".config/git/config"
+      - ".config/git/credentials"
+      - ".config/gh/hosts.yml"
+    windows:
+      - ".git-credentials"
+      - ".gitconfig"
+      - ".config/git/config"
+      - "AppData/Roaming/GitHub CLI/hosts.yml"
+      - ".config/gh/hosts.yml"
+
+  npm:
+    darwin:
+      - ".npmrc"
+      - ".pypirc"
+    linux:
+      - ".npmrc"
+      - ".pypirc"
+    windows:
+      - ".npmrc"
+      - ".pypirc"
+
+  ssh:
+    darwin:
+      - ".ssh"
+    linux:
+      - ".ssh"
+    windows:
+      - ".ssh"
+
+  shell-history:
+    darwin:
+      - ".zsh_history"
+      - ".bash_history"
+      - ".local/share/fish/fish_history"
+    linux:
+      - ".zsh_history"
+      - ".bash_history"
+      - ".local/share/fish/fish_history"
+    windows:
+      - "AppData/Roaming/Microsoft/Windows/PowerShell/PSReadLine/ConsoleHost_history.txt"
+      - ".bash_history"
+
+  shell-rc:
+    darwin:
+      - ".zshrc"
+      - ".zprofile"
+      - ".bashrc"
+      - ".bash_profile"
+      - ".profile"
+      - ".config/fish/config.fish"
+    linux:
+      - ".zshrc"
+      - ".zprofile"
+      - ".bashrc"
+      - ".bash_profile"
+      - ".profile"
+      - ".config/fish/config.fish"
+    windows:
+      - ".bashrc"
+      - ".profile"
+      - "Documents/PowerShell/Microsoft.PowerShell_profile.ps1"
+      - "Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1"
+
+  ai-transcripts:
+    darwin:
+      - ".claude/projects"
+      - ".codex/sessions"
+      - ".gemini/tmp" # UNVERIFIED
+      - "Library/Application Support/Cursor/User/globalStorage"
+      - "Library/Application Support/Cursor/User/workspaceStorage"
+      - "Library/Application Support/Windsurf/User/globalStorage" # UNVERIFIED
+      - ".codeium/windsurf" # UNVERIFIED
+      - "Library/Application Support/Code/User/workspaceStorage"
+      - "Library/Application Support/Code/User/globalStorage/github.copilot-chat" # UNVERIFIED
+    linux:
+      - ".claude/projects"
+      - ".codex/sessions"
+      - ".gemini/tmp" # UNVERIFIED
+      - ".config/Cursor/User/globalStorage"
+      - ".config/Cursor/User/workspaceStorage"
+      - ".config/Windsurf/User/globalStorage" # UNVERIFIED
+      - ".codeium/windsurf" # UNVERIFIED
+      - ".config/Code/User/workspaceStorage"
+      - ".config/Code/User/globalStorage/github.copilot-chat" # UNVERIFIED
+    windows:
+      - ".claude/projects"
+      - ".codex/sessions"
+      - ".gemini/tmp" # UNVERIFIED
+      - "AppData/Roaming/Cursor/User/globalStorage"
+      - "AppData/Roaming/Cursor/User/workspaceStorage"
+      - "AppData/Roaming/Windsurf/User/globalStorage" # UNVERIFIED
+      - ".codeium/windsurf" # UNVERIFIED
+      - "AppData/Roaming/Code/User/workspaceStorage"
+      - "AppData/Roaming/Code/User/globalStorage/github.copilot-chat" # UNVERIFIED
+
+  ai-config:
+    darwin:
+      - ".claude.json"
+      - ".claude/settings.json"
+      - "Library/Application Support/Claude/claude_desktop_config.json"
+      - ".codex/config.toml"
+      - ".codex/auth.json" # UNVERIFIED
+      - ".cursor/mcp.json"
+      - ".codeium/windsurf/mcp_config.json" # UNVERIFIED
+      - "Library/Application Support/Code/User/mcp.json"
+      - ".vscode/mcp.json"
+    linux:
+      - ".claude.json"
+      - ".claude/settings.json"
+      - ".config/Claude/claude_desktop_config.json"
+      - ".codex/config.toml"
+      - ".codex/auth.json" # UNVERIFIED
+      - ".cursor/mcp.json"
+      - ".codeium/windsurf/mcp_config.json" # UNVERIFIED
+      - ".config/Code/User/mcp.json"
+      - ".vscode/mcp.json"
+    windows:
+      - ".claude.json"
+      - ".claude/settings.json"
+      - "AppData/Roaming/Claude/claude_desktop_config.json"
+      - ".codex/config.toml"
+      - ".codex/auth.json" # UNVERIFIED
+      - ".cursor/mcp.json"
+      - ".codeium/windsurf/mcp_config.json" # UNVERIFIED
+      - "AppData/Roaming/Code/User/mcp.json"
+      - ".vscode/mcp.json"
+
+  dotenv:
+    darwin:
+      - "code"
+      - "projects"
+      - "dev"
+      - "src"
+      - "Documents/GitHub"
+    linux:
+      - "code"
+      - "projects"
+      - "dev"
+      - "src"
+      - "Documents/GitHub"
+    windows:
+      - "code"
+      - "projects"
+      - "dev"
+      - "src"
+      - "Documents/GitHub"
+
+  containers:
+    darwin:
+      - ".docker/config.json"
+      - ".kube/config"
+    linux:
+      - ".docker/config.json"
+      - ".kube/config"
+    windows:
+      - ".docker/config.json"
+      - ".kube/config"
+
+  iac:
+    darwin:
+      - ".terraform.d/credentials.tfrc.json"
+      - ".pulumi/credentials.json"
+    linux:
+      - ".terraform.d/credentials.tfrc.json"
+      - ".pulumi/credentials.json"
+    windows:
+      - "AppData/Roaming/terraform.d/credentials.tfrc.json"
+      - ".terraform.d/credentials.tfrc.json"
+      - ".pulumi/credentials.json"
+
+  packages:
+    darwin:
+      - ".npm/_cacache"
+      - ".local/share/pnpm/store"
+    linux:
+      - ".npm/_cacache"
+      - ".local/share/pnpm/store"
+    windows:
+      - "AppData/Local/npm-cache/_cacache"
+      - ".npm/_cacache"

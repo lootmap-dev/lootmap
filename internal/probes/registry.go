@@ -134,7 +134,26 @@ func (r *Registry) All() []Probe {
 	return out
 }
 
-var defaultRegistry = NewRegistry()
+var defaultRegistry = func() *Registry {
+	r := NewRegistry()
+	for _, p := range ClassicProbes() {
+		_ = r.Register(p)
+	}
+	return r
+}()
+
+// ClassicProbes returns the 6 Phase 2 probes (cloud, git, npm, ssh,
+// shell-history, shell-rc).
+func ClassicProbes() []Probe {
+	return []Probe{
+		CloudProbe{},
+		GitProbe{},
+		NPMProbe{},
+		SSHProbe{},
+		ShellHistoryProbe{},
+		ShellRCProbe{},
+	}
+}
 
 // Default returns the registry used by the lootmap binary.
 func Default() *Registry { return defaultRegistry }

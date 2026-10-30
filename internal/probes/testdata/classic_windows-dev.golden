@@ -1,0 +1,48 @@
+{
+  "tool": "lootmap",
+  "version": "0.1.0",
+  "host": {
+    "os": "windows"
+  },
+  "score": 86,
+  "loot": [
+    {
+      "id": "L-ff9fccef",
+      "kind": "aws-access-key-id",
+      "impact": "Long-lived access to your AWS account",
+      "severity": "critical",
+      "fingerprint": "sha256:ff9fccef482187e616cc3ba428743741c93bc9a1d3c19bd91955cb3405c198b3",
+      "preview": "AKIA••••••QAZI",
+      "locations": [
+        {
+          "probe": "cloud",
+          "path": "~/.aws/credentials",
+          "line": 2
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ],
+      "rotate": "https://console.aws.amazon.com/iam/home#/security_credentials"
+    },
+    {
+      "id": "L-b0bd9456",
+      "kind": "openai-api-key",
+      "impact": "Spend your OpenAI API quota and read stored files/assistants",
+      "severity": "high",
+      "fingerprint": "sha256:b0bd94560d0c977163b5813c26c0bb18320e19e21e7f732925454ba3e42a959b",
+      "preview": "sk-pro••••••N89a",
+      "locations": [
+        {
+          "probe": "shell-history",
+          "path": "~/AppData/Roaming/Microsoft/Windows/PowerShell/PSReadLine/ConsoleHost_history.txt",
+          "line": 1
+        }
+      ],
+      "fixes": [
+        "redact-transcripts"
+      ],
+      "rotate": "https://platform.openai.com/api-keys"
+    }
+  ]
+}

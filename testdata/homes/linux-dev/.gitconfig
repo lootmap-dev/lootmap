@@ -1,0 +1,7 @@
+[user]
+	name = Dev User
+	email = dev@example.com
+[credential]
+	helper = store
+[include]
+	path = ~/.config/git/extra.gitconfig
