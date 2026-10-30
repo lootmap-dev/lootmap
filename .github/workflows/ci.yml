@@ -34,8 +34,11 @@ jobs:
           ./dist-ci/lootmap doctor
 
   # Real network sandbox (SPEC.md test strategy, decision 17): Linux only.
-  # Modules are downloaded first; tests and the binary then run in a user
-  # namespace with no network, so any connection attempt fails.
+  # Modules are downloaded first; tests and the binary then run in a network
+  # namespace that has no usable interfaces, so any connection attempt fails.
+  # Ubuntu 24.04 runners block unprivileged user namespaces (AppArmor), so the
+  # namespace is created with sudo and setpriv drops straight back to the
+  # runner user: nothing under test runs as root.
   sandbox:
     runs-on: ubuntu-latest
     steps:
@@ -48,15 +51,27 @@ jobs:
           go mod download
           go build -o dist-ci/ ./cmd/lootmap
           go test -count=1 -run '^$' ./...
+      - name: write sandbox helper
+        run: |
+          cat > "$RUNNER_TEMP/nonet" <<EOF
+          #!/bin/sh
+          # Usage: nonet <command...>  runs the command as $(id -un) without network.
+          exec sudo unshare --net -- setpriv --reuid=$(id -u) --regid=$(id -g) --init-groups env PATH="$PATH" HOME="$HOME" GOPATH="$(go env GOPATH)" GOCACHE="$(go env GOCACHE)" GOMODCACHE="$(go env GOMODCACHE)" GOTOOLCHAIN=local GOPROXY=off GOFLAGS=-mod=mod "\$@"
+          EOF
+          chmod +x "$RUNNER_TEMP/nonet"
+      - name: prove the sandbox has no network
+        run: |
+          "$RUNNER_TEMP/nonet" true
+          test "$("$RUNNER_TEMP/nonet" id -u)" = "$(id -u)"
+          if "$RUNNER_TEMP/nonet" curl -sS --max-time 5 https://proxy.golang.org >/dev/null 2>&1; then
+            echo "sandbox still has network access"; exit 1
+          fi
       - name: test without network
-        env:
-          GOPROXY: "off"
-          GOFLAGS: "-mod=mod"
-        run: unshare --user --map-root-user --net go test -count=1 ./...
+        run: '"$RUNNER_TEMP/nonet" go test -count=1 ./...'
       - name: smoke without network
         run: |
-          unshare --user --map-root-user --net ./dist-ci/lootmap --help
-          unshare --user --map-root-user --net ./dist-ci/lootmap doctor
+          "$RUNNER_TEMP/nonet" ./dist-ci/lootmap --help
+          "$RUNNER_TEMP/nonet" ./dist-ci/lootmap doctor
 
   lint:
     runs-on: ubuntu-latest
